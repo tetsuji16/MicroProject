@@ -1,0 +1,9 @@
+# CPAL Mirror - ignore common build and temp files
+node_modules/
+frontend/node_modules/
+target/
+dist/
+.DS_Store
+build/
+.cache/
+.log
