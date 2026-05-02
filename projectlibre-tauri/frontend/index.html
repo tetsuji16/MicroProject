@@ -9,11 +9,13 @@
         color-scheme: light;
         --bg: #f4efe8;
         --panel: #fffaf3;
+        --panel-2: #fff3e5;
         --text: #1f1b16;
         --muted: #6b5f55;
         --accent: #b45309;
-        --accent-soft: #f59e0b;
+        --accent-2: #f59e0b;
         --line: rgba(31, 27, 22, 0.12);
+        --shadow: 0 24px 70px rgba(31, 27, 22, 0.08);
       }
 
       * {
@@ -26,65 +28,50 @@
         font-family: Georgia, "Times New Roman", serif;
         color: var(--text);
         background:
-          radial-gradient(circle at top left, rgba(180, 83, 9, 0.18), transparent 35%),
+          radial-gradient(circle at top left, rgba(180, 83, 9, 0.16), transparent 32%),
+          radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.12), transparent 28%),
           linear-gradient(135deg, #fcf7f0 0%, var(--bg) 100%);
       }
 
       main {
-        max-width: 960px;
+        max-width: 1400px;
         margin: 0 auto;
-        padding: 48px 24px 72px;
+        padding: 28px;
       }
 
       .shell {
-        background: var(--panel);
+        background: rgba(255, 250, 243, 0.96);
         border: 1px solid var(--line);
         border-radius: 28px;
-        box-shadow: 0 24px 70px rgba(31, 27, 22, 0.08);
+        box-shadow: var(--shadow);
         overflow: hidden;
+        backdrop-filter: blur(8px);
       }
 
       .hero {
-        padding: 36px 32px 24px;
+        padding: 32px 32px 24px;
         border-bottom: 1px solid var(--line);
-        background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), transparent);
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.1), transparent);
+      }
+
+      .topline {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: space-between;
       }
 
       h1 {
-        margin: 0 0 10px;
-        font-size: clamp(2.3rem, 5vw, 4.2rem);
+        margin: 0;
+        font-size: clamp(2.2rem, 5vw, 4.4rem);
         letter-spacing: -0.04em;
       }
 
-      p {
-        margin: 0;
-        line-height: 1.6;
-        color: var(--muted);
-        max-width: 60ch;
-      }
-
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
-        padding: 24px 32px 32px;
-      }
-
-      .card {
-        padding: 18px 18px 20px;
-        border: 1px solid var(--line);
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.6);
-      }
-
-      .card h2 {
-        margin: 0 0 10px;
-        font-size: 1.05rem;
-      }
-
       .badge {
-        display: inline-block;
-        padding: 4px 10px;
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
         border-radius: 999px;
         background: rgba(180, 83, 9, 0.12);
         color: var(--accent);
@@ -92,19 +79,240 @@
         font-weight: 700;
       }
 
-      ul {
-        margin: 10px 0 0;
-        padding-left: 18px;
+      .lead {
+        max-width: 70ch;
+        margin: 12px 0 0;
+        line-height: 1.65;
         color: var(--muted);
       }
 
-      @media (max-width: 720px) {
-        .grid {
+      .statusbar {
+        margin-top: 16px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--accent-2);
+        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.14);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 380px;
+        gap: 18px;
+        padding: 24px 28px 28px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.65);
+        overflow: hidden;
+      }
+
+      .panel h2 {
+        margin: 0;
+        padding: 16px 18px;
+        font-size: 1.1rem;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel-2);
+      }
+
+      .panel-body {
+        padding: 16px 18px 18px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      input,
+      textarea,
+      select,
+      button {
+        font: inherit;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: #fffdf9;
+        color: var(--text);
+      }
+
+      textarea {
+        min-height: 86px;
+        resize: vertical;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .primary,
+      .ghost,
+      .danger {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 14px;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      }
+
+      .primary {
+        background: linear-gradient(135deg, var(--accent), #8f3b0b);
+        color: #fff;
+        box-shadow: 0 10px 24px rgba(180, 83, 9, 0.24);
+      }
+
+      .ghost {
+        background: rgba(255, 255, 255, 0.8);
+        color: var(--text);
+        border: 1px solid var(--line);
+      }
+
+      .danger {
+        background: rgba(185, 28, 28, 0.12);
+        color: #991b1b;
+      }
+
+      .primary:hover,
+      .ghost:hover,
+      .danger:hover {
+        transform: translateY(-1px);
+      }
+
+      .list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .item {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.75);
+      }
+
+      .item-head {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .item-title {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(180, 83, 9, 0.12);
+        color: var(--accent);
+        font-size: 0.8rem;
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .table th,
+      .table td {
+        text-align: left;
+        padding: 8px 6px;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.92rem;
+        vertical-align: top;
+      }
+
+      .table th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      pre {
+        margin: 0;
+        padding: 12px;
+        border-radius: 18px;
+        background: #181411;
+        color: #f5efe7;
+        overflow: auto;
+        max-height: 360px;
+        font-size: 0.82rem;
+      }
+
+      .error {
+        color: #991b1b;
+        font-weight: 700;
+      }
+
+      .selected {
+        outline: 2px solid rgba(180, 83, 9, 0.34);
+        box-shadow: 0 0 0 4px rgba(180, 83, 9, 0.08);
+      }
+
+      .small {
+        font-size: 0.82rem;
+      }
+
+      @media (max-width: 1200px) {
+        .layout {
           grid-template-columns: 1fr;
         }
+      }
 
+      @media (max-width: 720px) {
         main {
-          padding: 20px 14px 28px;
+          padding: 12px;
+        }
+
+        .hero,
+        .layout {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+
+        .row {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -113,34 +321,771 @@
     <main>
       <section class="shell">
         <div class="hero">
-          <span class="badge">MicroProject rewrite scaffold</span>
-          <h1>ProjectLibre, rebuilt in Rust and Tauri.</h1>
-          <p>
-            This shell is the starting point for the rewrite. The upstream ProjectLibre snapshot lives in the
-            repository for reference while the new desktop app grows in small, testable slices.
+          <div class="topline">
+            <div>
+              <span class="badge">MicroProject rewrite scaffold</span>
+              <h1>ProjectLibre, rebuilt in Rust and Tauri.</h1>
+            </div>
+            <button class="ghost" id="refreshBtn" type="button">Refresh</button>
+          </div>
+          <p class="lead">
+            This view talks directly to the Rust backend. It is intentionally simple for now, but it already supports
+            project, task, dependency, and calendar CRUD so we can evolve the rewrite in small vertical slices.
           </p>
+          <div class="statusbar">
+            <span class="dot"></span>
+            <span id="statusText">Loading workspace...</span>
+          </div>
         </div>
 
-        <div class="grid">
-          <article class="card">
-            <h2>Today</h2>
-            <ul>
-              <li>JSON-backed workspace store</li>
-              <li>Tauri CRUD commands for core entities</li>
-              <li>Imported upstream snapshot for provenance</li>
-            </ul>
-          </article>
+        <div class="layout">
+          <section class="panel">
+            <h2>Projects</h2>
+            <div class="panel-body stack">
+              <form id="projectForm" class="stack">
+                <label>
+                  Name
+                  <input id="projectName" placeholder="Launch website" required />
+                </label>
+                <label>
+                  Description
+                  <textarea id="projectDescription" placeholder="Project summary"></textarea>
+                </label>
+                <div class="row">
+                  <label>
+                    Start
+                    <input id="projectStart" type="date" />
+                  </label>
+                  <label>
+                    Finish
+                    <input id="projectFinish" type="date" />
+                  </label>
+                </div>
+                <button class="primary" type="submit">Add Project</button>
+              </form>
+              <div id="projectList" class="list"></div>
+            </div>
+          </section>
 
-          <article class="card">
-            <h2>Next</h2>
-            <ul>
-              <li>Project and task navigation UI</li>
-              <li>Timeline and dependency rendering</li>
-              <li>Import/export and richer persistence</li>
-            </ul>
-          </article>
+          <section class="panel">
+            <h2>Tasks & Dependencies</h2>
+            <div class="panel-body stack">
+              <div>
+                <div class="actions">
+                  <span class="pill" id="selectedProjectPill">No project selected</span>
+                  <span class="pill" id="countsPill">0 tasks · 0 dependencies</span>
+                </div>
+                <p class="muted small">
+                  Choose a project on the left. The task and dependency forms below will target that project.
+                </p>
+              </div>
+
+              <form id="taskForm" class="stack">
+                <label>
+                  Task name
+                  <input id="taskName" placeholder="Define milestones" required />
+                </label>
+                <div class="row">
+                  <label>
+                    Start
+                    <input id="taskStart" type="date" />
+                  </label>
+                  <label>
+                    Finish
+                    <input id="taskFinish" type="date" />
+                  </label>
+                </div>
+                <div class="row">
+                  <label>
+                    Percent complete
+                    <input id="taskPercent" type="number" min="0" max="100" step="1" value="0" />
+                  </label>
+                  <label>
+                    Sort order
+                    <input id="taskSortOrder" type="number" step="1" value="0" />
+                  </label>
+                </div>
+                <button class="primary" type="submit">Add Task</button>
+              </form>
+
+              <form id="dependencyForm" class="stack">
+                <div class="row">
+                  <label>
+                    Predecessor
+                    <select id="dependencyPredecessor"></select>
+                  </label>
+                  <label>
+                    Successor
+                    <select id="dependencySuccessor"></select>
+                  </label>
+                </div>
+                <button class="primary" type="submit">Add Dependency</button>
+              </form>
+
+              <section>
+                <h3 class="item-title">Tasks</h3>
+                <div id="taskList" class="list"></div>
+              </section>
+
+              <section>
+                <h3 class="item-title">Dependencies</h3>
+                <div id="dependencyList" class="list"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Snapshot</h2>
+            <div class="panel-body stack">
+              <form id="calendarForm" class="stack">
+                <label>
+                  Calendar name
+                  <input id="calendarName" placeholder="Standard" required />
+                </label>
+                <label>
+                  Timezone
+                  <input id="calendarTimezone" placeholder="Asia/Tokyo" />
+                </label>
+                <button class="primary" type="submit">Add Calendar</button>
+              </form>
+              <form id="resourceForm" class="stack">
+                <label>
+                  Resource name
+                  <input id="resourceName" placeholder="Alice" required />
+                </label>
+                <div class="row">
+                  <label>
+                    Type
+                    <select id="resourceType">
+                      <option value="work">Work</option>
+                      <option value="material">Material</option>
+                      <option value="cost">Cost</option>
+                    </select>
+                  </label>
+                  <label>
+                    Max units
+                    <input id="resourceUnits" type="number" min="0" max="1000" step="1" value="100" />
+                  </label>
+                </div>
+                <div class="row">
+                  <label>
+                    Standard rate
+                    <input id="resourceRate" type="number" min="0" step="0.01" value="0" />
+                  </label>
+                  <label>
+                    Cost per use
+                    <input id="resourceCost" type="number" min="0" step="0.01" value="0" />
+                  </label>
+                </div>
+                <button class="primary" type="submit">Add Resource</button>
+              </form>
+              <form id="assignmentForm" class="stack">
+                <div class="row">
+                  <label>
+                    Task
+                    <select id="assignmentTask"></select>
+                  </label>
+                  <label>
+                    Resource
+                    <select id="assignmentResource"></select>
+                  </label>
+                </div>
+                <div class="row">
+                  <label>
+                    Units
+                    <input id="assignmentUnits" type="number" min="0" max="1000" step="1" value="100" />
+                  </label>
+                  <label>
+                    Work hours
+                    <input id="assignmentWork" type="number" min="0" step="0.5" value="0" />
+                  </label>
+                </div>
+                <button class="primary" type="submit">Add Assignment</button>
+              </form>
+              <div class="actions">
+                <button class="ghost" id="recalcBtn" type="button">Recalculate</button>
+                <button class="ghost" id="exportBtn" type="button">Export JSON</button>
+                <button class="ghost" id="exportXmlBtn" type="button">Export XML</button>
+                <button class="ghost" id="importBtn" type="button">Import JSON</button>
+                <button class="ghost" id="importXmlBtn" type="button">Import XML</button>
+              </div>
+              <section>
+                <h3 class="item-title">Calendars</h3>
+                <div id="calendarList" class="list"></div>
+              </section>
+              <section>
+                <h3 class="item-title">Resources</h3>
+                <div id="resourceList" class="list"></div>
+              </section>
+              <section>
+                <h3 class="item-title">Assignments</h3>
+                <div id="assignmentList" class="list"></div>
+              </section>
+              <pre id="snapshotView">{}</pre>
+            </div>
+          </section>
         </div>
       </section>
     </main>
+
+    <script>
+      const tauri = window.__TAURI__ && window.__TAURI__.tauri;
+      const invoke = tauri ? tauri.invoke : async () => {
+        throw new Error("Tauri bridge is unavailable. Run this inside the desktop shell.");
+      };
+
+      const state = {
+        snapshot: null,
+        selectedProjectId: null,
+        status: "Loading workspace..."
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      function formatDate(value) {
+        if (!value) return "unspecified";
+        return value;
+      }
+
+      function pickFirstProjectId(snapshot) {
+        return snapshot.projects[0] ? snapshot.projects[0].id : null;
+      }
+
+      function projectOfTask(task) {
+        return state.snapshot.projects.find((project) => project.id === task.project_id);
+      }
+
+      function selectedProject() {
+        return state.snapshot.projects.find((project) => project.id === state.selectedProjectId) || null;
+      }
+
+      function filteredTasks() {
+        if (!state.selectedProjectId) return [];
+        return state.snapshot.tasks.filter((task) => task.project_id === state.selectedProjectId);
+      }
+
+      function tasksForProject(projectId) {
+        return state.snapshot.tasks.filter((task) => task.project_id === projectId);
+      }
+
+      function dependenciesForProject(projectId) {
+        return state.snapshot.dependencies.filter((dependency) => dependency.project_id === projectId);
+      }
+
+      function filteredDependencies() {
+        const tasks = new Set(filteredTasks().map((task) => task.id));
+        return state.snapshot.dependencies.filter(
+          (dependency) =>
+            dependency.project_id === state.selectedProjectId &&
+            tasks.has(dependency.predecessor_task_id) &&
+            tasks.has(dependency.successor_task_id)
+        );
+      }
+
+      function resourcesForProject(projectId) {
+        return state.snapshot.resources.filter((resource) => resource.project_id === projectId);
+      }
+
+      function assignmentsForProject(projectId) {
+        return state.snapshot.assignments.filter((assignment) => assignment.project_id === projectId);
+      }
+
+      function renderProjectList() {
+        const container = $("projectList");
+        if (!state.snapshot.projects.length) {
+          container.innerHTML = '<div class="muted">No projects yet. Add the first one above.</div>';
+          return;
+        }
+
+        container.innerHTML = state.snapshot.projects
+          .map((project) => {
+            const selected = project.id === state.selectedProjectId ? "selected" : "";
+            return `
+              <div class="item ${selected}">
+                <div class="item-head">
+                  <div>
+                    <h3 class="item-title">${escapeHtml(project.name)}</h3>
+                    <div class="muted">${escapeHtml(project.id)}</div>
+                  </div>
+                  <span class="pill">${tasksForProject(project.id).length} tasks · ${dependenciesForProject(project.id).length} deps</span>
+                </div>
+                <p class="muted">${escapeHtml(project.description || "No description")}</p>
+                <div class="muted small">${formatDate(project.start_date)} → ${formatDate(project.finish_date)}</div>
+                <div class="actions" style="margin-top:10px">
+                  <button class="ghost" type="button" data-select-project="${project.id}">Open</button>
+                  <button class="danger" type="button" data-delete-project="${project.id}">Delete</button>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderTaskList() {
+        const container = $("taskList");
+        const tasks = filteredTasks();
+        if (!tasks.length) {
+          container.innerHTML = '<div class="muted">No tasks for this project yet.</div>';
+          return;
+        }
+
+        container.innerHTML = tasks
+          .map((task) => `
+            <div class="item">
+              <div class="item-head">
+                <div>
+                  <h3 class="item-title">${escapeHtml(task.name)}</h3>
+                  <div class="muted">${escapeHtml(task.id)}</div>
+                </div>
+                <span class="pill">${Number(task.percent_complete || 0)}%</span>
+              </div>
+              <div class="muted small">${formatDate(task.start_date)} → ${formatDate(task.finish_date)}</div>
+              <div class="actions" style="margin-top:10px">
+                <button class="danger" type="button" data-delete-task="${task.id}">Delete</button>
+              </div>
+            </div>
+          `)
+          .join("");
+      }
+
+      function renderDependencyList() {
+        const container = $("dependencyList");
+        const dependencies = filteredDependencies();
+        if (!dependencies.length) {
+          container.innerHTML = '<div class="muted">No dependencies for this project yet.</div>';
+          return;
+        }
+
+        container.innerHTML = dependencies
+          .map((dependency) => {
+            const predecessor = state.snapshot.tasks.find((task) => task.id === dependency.predecessor_task_id);
+            const successor = state.snapshot.tasks.find((task) => task.id === dependency.successor_task_id);
+            return `
+              <div class="item">
+                <div class="item-head">
+                  <div>
+                    <h3 class="item-title">${escapeHtml(predecessor ? predecessor.name : dependency.predecessor_task_id)} → ${escapeHtml(successor ? successor.name : dependency.successor_task_id)}</h3>
+                    <div class="muted">${escapeHtml(dependency.relation)}</div>
+                  </div>
+                  <button class="danger" type="button" data-delete-dependency="${dependency.id}">Delete</button>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderResourceList() {
+        const container = $("resourceList");
+        const resources = state.selectedProjectId ? resourcesForProject(state.selectedProjectId) : [];
+        if (!resources.length) {
+          container.innerHTML = '<div class="muted">No resources for this project yet.</div>';
+          return;
+        }
+
+        container.innerHTML = resources
+          .map(
+            (resource) => `
+              <div class="item">
+                <div class="item-head">
+                  <div>
+                    <h3 class="item-title">${escapeHtml(resource.name)}</h3>
+                    <div class="muted">${escapeHtml(resource.resource_type)} · ${escapeHtml(resource.id)}</div>
+                  </div>
+                  <button class="danger" type="button" data-delete-resource="${resource.id}">Delete</button>
+                </div>
+                <div class="muted small">Max units: ${Number(resource.max_units || 0)}% · Rate: ${Number(resource.standard_rate || 0)}</div>
+              </div>
+            `
+          )
+          .join("");
+      }
+
+      function renderAssignmentList() {
+        const container = $("assignmentList");
+        const assignments = state.selectedProjectId ? assignmentsForProject(state.selectedProjectId) : [];
+        if (!assignments.length) {
+          container.innerHTML = '<div class="muted">No assignments for this project yet.</div>';
+          return;
+        }
+
+        container.innerHTML = assignments
+          .map((assignment) => {
+            const task = state.snapshot.tasks.find((item) => item.id === assignment.task_id);
+            const resource = state.snapshot.resources.find((item) => item.id === assignment.resource_id);
+            return `
+              <div class="item">
+                <div class="item-head">
+                  <div>
+                    <h3 class="item-title">${escapeHtml(task ? task.name : assignment.task_id)}</h3>
+                    <div class="muted">${escapeHtml(resource ? resource.name : assignment.resource_id)}</div>
+                  </div>
+                  <button class="danger" type="button" data-delete-assignment="${assignment.id}">Delete</button>
+                </div>
+                <div class="muted small">Units: ${Number(assignment.units || 0)}% · Work: ${Number(assignment.work_hours || 0)}h · Cost: ${Number(assignment.cost || 0)}</div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderCalendarList() {
+        const container = $("calendarList");
+        const calendars = state.snapshot.calendars.filter((calendar) => calendar.project_id === state.selectedProjectId);
+        if (!calendars.length) {
+          container.innerHTML = '<div class="muted">No calendars for this project yet.</div>';
+          return;
+        }
+
+        container.innerHTML = calendars
+          .map(
+            (calendar) => `
+              <div class="item">
+                <div class="item-head">
+                  <div>
+                    <h3 class="item-title">${escapeHtml(calendar.name)}</h3>
+                    <div class="muted">${escapeHtml(calendar.id)}</div>
+                  </div>
+                  <button class="danger" type="button" data-delete-calendar="${calendar.id}">Delete</button>
+                </div>
+                <div class="muted small">${escapeHtml((calendar.working_days || []).join(", ") || "No working days")}</div>
+              </div>
+            `
+          )
+          .join("");
+      }
+
+      function renderDependencySelectors() {
+        const predecessor = $("dependencyPredecessor");
+        const successor = $("dependencySuccessor");
+        const tasks = filteredTasks();
+        const options = ['<option value="">Select task</option>']
+          .concat(tasks.map((task) => `<option value="${task.id}">${escapeHtml(task.name)}</option>`))
+          .join("");
+        predecessor.innerHTML = options;
+        successor.innerHTML = options;
+      }
+
+      function renderResourceSelectors() {
+        const taskSelector = $("assignmentTask");
+        const resourceSelector = $("assignmentResource");
+        const tasks = filteredTasks();
+        const resources = state.selectedProjectId ? resourcesForProject(state.selectedProjectId) : [];
+        taskSelector.innerHTML = ['<option value="">Select task</option>']
+          .concat(tasks.map((task) => `<option value="${task.id}">${escapeHtml(task.name)}</option>`))
+          .join("");
+        resourceSelector.innerHTML = ['<option value="">Select resource</option>']
+          .concat(resources.map((resource) => `<option value="${resource.id}">${escapeHtml(resource.name)}</option>`))
+          .join("");
+      }
+
+      function renderSnapshot() {
+        $("snapshotView").textContent = JSON.stringify(state.snapshot, null, 2);
+      }
+
+      function syncSelection() {
+        const project = selectedProject();
+        $("selectedProjectPill").textContent = project ? `${project.name}` : "No project selected";
+        const tasks = filteredTasks();
+        const dependencies = filteredDependencies();
+        const resources = state.selectedProjectId ? resourcesForProject(state.selectedProjectId).length : 0;
+        const assignments = state.selectedProjectId ? assignmentsForProject(state.selectedProjectId).length : 0;
+        $("countsPill").textContent = `${tasks.length} tasks · ${dependencies.length} dependencies · ${resources} resources · ${assignments} assignments`;
+      }
+
+      function render() {
+        if (!state.snapshot) return;
+        renderProjectList();
+        renderTaskList();
+        renderDependencyList();
+        renderCalendarList();
+        renderResourceList();
+        renderAssignmentList();
+        renderDependencySelectors();
+        renderResourceSelectors();
+        renderSnapshot();
+        syncSelection();
+        $("statusText").textContent = state.status;
+      }
+
+      async function refresh() {
+        state.status = "Refreshing workspace...";
+        render();
+        state.snapshot = await invoke("workspace_snapshot");
+        if (!state.selectedProjectId || !state.snapshot.projects.some((project) => project.id === state.selectedProjectId)) {
+          state.selectedProjectId = pickFirstProjectId(state.snapshot);
+        }
+        state.status = state.snapshot.projects.length
+          ? `Loaded ${state.snapshot.projects.length} project(s)`
+          : "Workspace is empty";
+        render();
+      }
+
+      async function submitProject(event) {
+        event.preventDefault();
+        const payload = {
+          id: null,
+          name: $("projectName").value,
+          description: $("projectDescription").value || null,
+          start_date: $("projectStart").value || null,
+          finish_date: $("projectFinish").value || null,
+        };
+        state.snapshot = await invoke("workspace_upsert_project", { input: payload });
+        state.selectedProjectId = state.snapshot.projects[state.snapshot.projects.length - 1]?.id || state.selectedProjectId;
+        $("projectForm").reset();
+        state.status = `Project saved: ${payload.name}`;
+        render();
+      }
+
+      async function submitTask(event) {
+        event.preventDefault();
+        if (!state.selectedProjectId) {
+          state.status = "Choose a project before creating tasks.";
+          render();
+          return;
+        }
+        const payload = {
+          id: null,
+          project_id: state.selectedProjectId,
+          name: $("taskName").value,
+          description: null,
+          start_date: $("taskStart").value || null,
+          finish_date: $("taskFinish").value || null,
+          percent_complete: Number($("taskPercent").value || 0),
+          parent_task_id: null,
+          sort_order: Number($("taskSortOrder").value || 0),
+        };
+        state.snapshot = await invoke("workspace_upsert_task", { input: payload });
+        $("taskForm").reset();
+        $("taskPercent").value = "0";
+        $("taskSortOrder").value = "0";
+        state.status = `Task saved: ${payload.name}`;
+        render();
+      }
+
+      async function submitDependency(event) {
+        event.preventDefault();
+        if (!state.selectedProjectId) {
+          state.status = "Choose a project before creating dependencies.";
+          render();
+          return;
+        }
+        const payload = {
+          id: null,
+          project_id: state.selectedProjectId,
+          predecessor_task_id: $("dependencyPredecessor").value,
+          successor_task_id: $("dependencySuccessor").value,
+          relation: "FS",
+        };
+        state.snapshot = await invoke("workspace_upsert_dependency", { input: payload });
+        $("dependencyForm").reset();
+        state.status = "Dependency saved.";
+        render();
+      }
+
+      async function submitCalendar(event) {
+        event.preventDefault();
+        if (!state.selectedProjectId) {
+          state.status = "Choose a project before creating calendars.";
+          render();
+          return;
+        }
+        const payload = {
+          id: null,
+          project_id: state.selectedProjectId,
+          name: $("calendarName").value,
+          timezone: $("calendarTimezone").value || null,
+          working_days: null,
+        };
+        state.snapshot = await invoke("workspace_upsert_calendar", { input: payload });
+        $("calendarForm").reset();
+        state.status = `Calendar saved: ${payload.name}`;
+        render();
+      }
+
+      async function submitResource(event) {
+        event.preventDefault();
+        if (!state.selectedProjectId) {
+          state.status = "Choose a project before creating resources.";
+          render();
+          return;
+        }
+        const payload = {
+          id: null,
+          project_id: state.selectedProjectId,
+          name: $("resourceName").value,
+          resource_type: $("resourceType").value,
+          max_units: Number($("resourceUnits").value || 100),
+          standard_rate: Number($("resourceRate").value || 0),
+          overtime_rate: 0,
+          cost_per_use: Number($("resourceCost").value || 0),
+          calendar_id: null,
+          notes: null,
+        };
+        state.snapshot = await invoke("workspace_upsert_resource", { input: payload });
+        $("resourceForm").reset();
+        $("resourceUnits").value = "100";
+        $("resourceRate").value = "0";
+        $("resourceCost").value = "0";
+        state.status = `Resource saved: ${payload.name}`;
+        render();
+      }
+
+      async function submitAssignment(event) {
+        event.preventDefault();
+        if (!state.selectedProjectId) {
+          state.status = "Choose a project before creating assignments.";
+          render();
+          return;
+        }
+        const payload = {
+          id: null,
+          project_id: state.selectedProjectId,
+          task_id: $("assignmentTask").value,
+          resource_id: $("assignmentResource").value,
+          units: Number($("assignmentUnits").value || 100),
+          work_hours: Number($("assignmentWork").value || 0),
+          actual_work_hours: 0,
+        };
+        state.snapshot = await invoke("workspace_upsert_assignment", { input: payload });
+        $("assignmentForm").reset();
+        $("assignmentUnits").value = "100";
+        $("assignmentWork").value = "0";
+        state.status = "Assignment saved.";
+        render();
+      }
+
+      async function recalculateWorkspace() {
+        state.snapshot = await invoke("workspace_recalculate");
+        state.status = "Workspace recalculated.";
+        render();
+      }
+
+      async function exportWorkspace() {
+        const json = await invoke("workspace_export_json");
+        $("snapshotView").textContent = json;
+        state.status = "Workspace exported as JSON in the snapshot pane.";
+        $("statusText").textContent = state.status;
+      }
+
+      async function exportWorkspaceXml() {
+        const xml = await invoke("workspace_export_xml");
+        $("snapshotView").textContent = xml;
+        state.status = "Workspace exported as XML in the snapshot pane.";
+        $("statusText").textContent = state.status;
+      }
+
+      async function importWorkspaceJson() {
+        const payload = window.prompt("Paste the workspace JSON to import:");
+        if (!payload) return;
+        state.snapshot = await invoke("workspace_import_json", { json: payload });
+        state.selectedProjectId = pickFirstProjectId(state.snapshot);
+        state.status = "Workspace imported from JSON.";
+        render();
+      }
+
+      async function importWorkspaceXml() {
+        const payload = window.prompt("Paste the workspace XML to import:");
+        if (!payload) return;
+        state.snapshot = await invoke("workspace_import_xml", { xml: payload });
+        state.selectedProjectId = pickFirstProjectId(state.snapshot);
+        state.status = "Workspace imported from XML.";
+        render();
+      }
+
+      async function handleAction(event) {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+
+        const selectProjectId = target.dataset.selectProject;
+        const deleteProjectId = target.dataset.deleteProject;
+        const deleteTaskId = target.dataset.deleteTask;
+        const deleteDependencyId = target.dataset.deleteDependency;
+        const deleteCalendarId = target.dataset.deleteCalendar;
+        const deleteResourceId = target.dataset.deleteResource;
+        const deleteAssignmentId = target.dataset.deleteAssignment;
+
+        if (selectProjectId) {
+          state.selectedProjectId = selectProjectId;
+          state.status = "Project opened.";
+          render();
+          return;
+        }
+
+        if (deleteProjectId) {
+          state.snapshot = await invoke("workspace_delete_project", { project_id: deleteProjectId });
+          if (state.selectedProjectId === deleteProjectId) {
+            state.selectedProjectId = pickFirstProjectId(state.snapshot);
+          }
+          state.status = "Project deleted.";
+          render();
+          return;
+        }
+
+        if (deleteTaskId) {
+          state.snapshot = await invoke("workspace_delete_task", { task_id: deleteTaskId });
+          state.status = "Task deleted.";
+          render();
+          return;
+        }
+
+        if (deleteDependencyId) {
+          state.snapshot = await invoke("workspace_delete_dependency", { dependency_id: deleteDependencyId });
+          state.status = "Dependency deleted.";
+          render();
+          return;
+        }
+
+        if (deleteCalendarId) {
+          state.snapshot = await invoke("workspace_delete_calendar", { calendar_id: deleteCalendarId });
+          state.status = "Calendar deleted.";
+          render();
+          return;
+        }
+
+        if (deleteResourceId) {
+          state.snapshot = await invoke("workspace_delete_resource", { resource_id: deleteResourceId });
+          state.status = "Resource deleted.";
+          render();
+          return;
+        }
+
+        if (deleteAssignmentId) {
+          state.snapshot = await invoke("workspace_delete_assignment", { assignment_id: deleteAssignmentId });
+          state.status = "Assignment deleted.";
+          render();
+          return;
+        }
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      $("refreshBtn").addEventListener("click", refresh);
+      $("projectForm").addEventListener("submit", submitProject);
+      $("taskForm").addEventListener("submit", submitTask);
+      $("dependencyForm").addEventListener("submit", submitDependency);
+      $("calendarForm").addEventListener("submit", submitCalendar);
+      $("resourceForm").addEventListener("submit", submitResource);
+      $("assignmentForm").addEventListener("submit", submitAssignment);
+      $("recalcBtn").addEventListener("click", recalculateWorkspace);
+      $("exportBtn").addEventListener("click", exportWorkspace);
+      $("exportXmlBtn").addEventListener("click", exportWorkspaceXml);
+      $("importBtn").addEventListener("click", importWorkspaceJson);
+      $("importXmlBtn").addEventListener("click", importWorkspaceXml);
+      document.body.addEventListener("click", handleAction);
+
+      refresh().catch((error) => {
+        console.error(error);
+        state.status = error.message || String(error);
+        $("statusText").textContent = state.status;
+      });
+    </script>
   </body>
 </html>

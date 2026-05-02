@@ -270,8 +270,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c673075a2e0e5f4a1dde27ce9dee1ea4558c7ffe648f576438a20ca1d2acc4b0"
 dependencies = [
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "wasm-bindgen",
  "windows-link",
 ]
 
@@ -2159,11 +2161,15 @@ dependencies = [
 name = "projectlibre_tauri"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "dirs",
+ "roxmltree",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
+ "tempfile",
+ "uuid",
 ]
 
 [[package]]
@@ -2354,6 +2360,12 @@ name = "regex-syntax"
 version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
+
+[[package]]
+name = "roxmltree"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 
 [[package]]
 name = "rustc_version"
@@ -3340,6 +3352,7 @@ checksum = "ddd74a9687298c6858e9b88ec8935ec45d22e8fd5e6394fa1bd4e99a87789c76"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",
+ "serde_core",
  "wasm-bindgen",
 ]
 

@@ -7,14 +7,16 @@
 
 ## Phase 2 - Domain Model
 
-- Define Rust types for projects, tasks, dependencies, and calendars.
-- Add validation and serialization for the workspace state.
+- Define Rust types for projects, tasks, dependencies, resources, assignments, calendars, and baselines.
+- Add validation, serialization, and schedule recalculation for the workspace state.
 
 ## Phase 3 - Persistence and Commands
 
 - Store workspace state locally in JSON first.
-- Expose Tauri commands for project/task/dependency CRUD.
-- Add tests for delete cascades and load/save round trips.
+- Add XML interchange so the Rust backend can import/export workspace state in a portable format.
+- Expose Tauri commands for project/task/dependency/resource/assignment/calendar CRUD.
+- Add export/import and schedule-rebuild commands.
+- Add tests for delete cascades, load/save round trips, and schedule ordering.
 
 ## Phase 4 - Frontend
 
@@ -25,4 +27,3 @@
 
 - Add calendar rules, task sorting, and import/export.
 - Expand coverage in small slices instead of a large rewrite.
-
