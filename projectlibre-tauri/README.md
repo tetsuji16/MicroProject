@@ -1,15 +1,22 @@
-ProjectLibre Rust + TAURI MVP (Plan)*
-====================================
+# ProjectLibre Rewrite Scaffold
 
-- This directory contains the initial skeleton for the Rust + TAURI port of ProjectLibre.
-- MVP scope includes: project/task CRUD, dependency handling, local persistence, and simple Gantt data feeding to a frontend UI.
-- The backend is Rust; the UI is a TAURI shell with a Web frontend.
-- This file is a starting point and will be evolved as the project progresses.
+This directory contains the Rust + Tauri application scaffold for MicroProject.
 
-Build notes
-- Ensure Rust toolchain is installed.
-- Run frontend with a bundler (e.g., npm or pnpm) from frontend/ and integrate with TAURI via src-tauri.
+## What It Does Today
 
-Conventions
-- IPC API sketch in src-tauri/ will evolve as the UI requirements are clarified.
-- Data models in Rust (serde) should be designed for easy serialization to JSON/SQLite.
+- Stores workspace state locally as JSON.
+- Exposes Tauri commands for project, task, dependency, and calendar CRUD.
+- Keeps the frontend intentionally small while the domain model solidifies.
+
+## Build
+
+```powershell
+cd projectlibre-tauri
+cargo run
+```
+
+## Notes
+
+- The frontend is still a placeholder and will be replaced by the real rewrite UI.
+- The data model is JSON-first so we can iterate quickly before moving to richer persistence.
+- The Tauri config lives in `src-tauri/tauri.conf.json`.

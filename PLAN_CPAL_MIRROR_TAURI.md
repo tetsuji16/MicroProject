@@ -1,32 +1,7 @@
-CPAL 1.0 ライセンスを前提とした、ProjectLibre のミラー計画と Rust + TAURI 移植計画の実行方針
+このファイルは初期の計画メモです。
 
-概要
-- SourceForge 上の ProjectLibre コードを GitHub 上にミラーとして移行・運用し、将来的には Rust + TAURI によるデスクトップアプリへ書き直す二軸の計画を同時に推進する。
+現在の実装方針は [ROADMAP.md](./ROADMAP.md) と [README.md](./README.md) を正本にしてください。
 
-前提条件
-- CPAL 1.0 のライセンス通知と著作権表示を厳格に保持する。
-- SourceForge 側の実リポジトリURLの確定と、履歴の取り扱い方針を決定する。
-- ミラー先リポジトリ名を確定する。
-
-決定事項（現時点で確定済み/要決定）
-- ミラーの履歴ポリシー: 完全履歴ミラーを基本とする案を想定。変更可。
-- ミラー先リポジトリ名: 例として projectlibre-mirror を推奨。
-- ライセンス通知の扱い: LICENSE/NOTICE のファイルをミラーへ含め、README/NOTICE に CPAL の適用範囲を明記。
-- 移植計画: MVP の範囲を定義済み。以降の拡張は段階的。
-
-実行計画（ステップ概要）
-1) SourceForge 実リポジトリURLの確定と取得方法の確定
-2) GitHub 側に新規リポジトリ作成（名前は projectlibre-mirror を推奨）
-3) ミラーの実施方針を確定（完全履歴か初期スナップショット中心か）
-4) 同期運用設計（頻度、ブランチ運用、PR の扱い）
-5) ドキュメント整備（README_MIRROR.md、NOTICE/ LICENSE の扱い指針）
-6) 将来の Rust + TAURI 移植計画と連携するドキュメントの作成
-
-リスクと留意点
-- SourceForge の実リポジトリURLの特定が不可欠。
-- CPAL の適用範囲と派生結果のライセンス分岐を適切に管理。
-- ミラーの更新タイミングと互換性の整合性を保つ運用の設計が必要。
-
-将来の展望
-- 完全履歴ミラーを維持しつつ、Rust + TAURI 版のリリース後は、両方のリリース管理を統合する方針。
-- ライセンス周りの法務チェックを適宜行う。
+- SourceForge の最新スナップショットは `upstream/projectlibre-snapshot` に取り込み済みです。
+- Rust + Tauri の rewrite は `projectlibre-tauri` を使って進めます。
+- provenance とライセンスの要点は `NOTICE` にまとめています。

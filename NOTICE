@@ -1,0 +1,13 @@
+MicroProject combines two kinds of code:
+
+- An imported ProjectLibre snapshot from SourceForge, preserved under the upstream CPAL 1.0 notices found in the snapshot tree.
+- New rewrite work for the Rust + Tauri application in this repository.
+
+Upstream provenance:
+
+- Source: https://sourceforge.net/p/projectlibre/code/ci/master/
+- Imported commit: 0530be227f4a10c5545cce8d3db20ac5a4d76a66
+- Import location: upstream/projectlibre-snapshot
+
+New code written in this repository is documented as part of the MicroProject rewrite and should stay clearly separated from the imported upstream files.
+

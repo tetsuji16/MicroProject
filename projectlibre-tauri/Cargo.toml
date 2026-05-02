@@ -2,8 +2,13 @@
 name = "projectlibre_tauri"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
 
 [dependencies]
-tauri = { version = "1", features = ["api-all"] }
+tauri = { version = "1" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+dirs = "5"
+
+[build-dependencies]
+tauri-build = { version = "1" }

@@ -1,0 +1,20 @@
+# Build outputs
+target/
+projectlibre-tauri/target/
+dist/
+projectlibre-tauri/dist/
+
+# Frontend deps
+node_modules/
+projectlibre-tauri/node_modules/
+frontend/node_modules/
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Rust / Tauri local caches
+.tauri/
+projectlibre-tauri/.tauri/
+
