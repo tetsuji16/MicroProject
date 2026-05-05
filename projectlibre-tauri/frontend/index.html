@@ -624,9 +624,10 @@
     <div class="app">
       <header class="titlebar">
         <div class="brand">
+          <img src="./projectlibre.png" alt="ProjectLibre" style="width:144px; height:31px; object-fit:contain" />
           <div>
-            <div class="logo">ProjectLibre</div>
-            <div class="subtitle">MicroProject Rust/Tauri rewrite</div>
+            <div class="logo">MicroProject</div>
+            <div class="subtitle">ProjectLibre-compatible Rust/Tauri rewrite</div>
           </div>
         </div>
         <nav class="menu" id="menuTabs"></nav>
@@ -644,7 +645,7 @@
         <aside class="rail">
           <div class="rail-scroll">
             <div class="rail-card">
-              <header>Views</header>
+              <header>Task / Resource Views</header>
               <div class="body">
                 <div class="view-list" id="viewButtons"></div>
               </div>
@@ -996,44 +997,73 @@
 
       const $ = (id) => document.getElementById(id);
 
-      const ribbonTabs = ["File", "Task", "Resource", "Project", "View", "Help"];
+      const ribbonTabs = ["File", "Task", "Resource", "View"];
       const viewModes = [
-        { id: "gantt", label: "Gantt Chart" },
+        { id: "gantt", label: "Gantt" },
+        { id: "tracking", label: "Tracking Gantt" },
+        { id: "taskUsageDetail", label: "Task Usage Detail" },
+        { id: "resourceUsageDetail", label: "Resource Usage Detail" },
+        { id: "network", label: "Network" },
         { id: "wbs", label: "WBS" },
-        { id: "network", label: "Network Diagram" },
-        { id: "resource", label: "Resource Sheet" },
-        { id: "calendar", label: "Calendar" },
+        { id: "rbs", label: "RBS" },
+        { id: "resources", label: "Resources" },
+        { id: "projects", label: "Projects" },
+        { id: "taskUsage", label: "Task Usage" },
+        { id: "resourceUsage", label: "Resource Usage" },
       ];
 
       const ribbonActions = {
         File: [
           {
-            title: "Workspace",
+            title: "File",
             buttons: [
-              { label: "New Project", action: () => startNewProject() },
+              { label: "New", action: () => startNewProject() },
+              { label: "Open", action: () => notify("Open project is wired through the workspace snapshot for now.") },
+              { label: "Import MS Project", action: () => notify("MS Project .mpp import is next; sample files are now the reference set.") },
+              { label: "Export MS Project", action: () => notify("MS Project export is being aligned with the ProjectLibre exchange format.") },
+              { label: "Save", action: () => $("projectForm").requestSubmit() },
+              { label: "Close", action: () => notify("Close project will follow the current document model.") },
+              { label: "Print", action: () => notify("Print output will mirror the ProjectLibre report views.") },
+              { label: "Print Preview", action: () => notify("Print preview is pending.") },
+              { label: "PDF", action: () => notify("PDF export is pending.") },
+              { label: "Project Information", action: () => $("projectForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Change Working Time", action: () => $("calendarForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Update Project", action: () => recalculateWorkspace() },
+              { label: "Options", action: () => notify("Project options will follow the ProjectLibre dialog model.") },
               { label: "Refresh", action: () => refresh() },
-              { label: "Export XML", action: () => exportWorkspaceXml() },
-              { label: "Export JSON", action: () => exportWorkspaceJson() },
-              { label: "Import XML", action: () => importWorkspaceXml() },
             ],
           },
         ],
         Task: [
           {
-            title: "Editing",
+            title: "Task",
             buttons: [
-              { label: "New Task", action: () => startNewTask() },
-              { label: "Save Task", action: () => $("taskForm").requestSubmit() },
-              { label: "Delete Task", action: () => deleteSelectedTask() },
+              { label: "Insert Task", action: () => startNewTask() },
+              { label: "Insert Recurring", action: () => notify("Recurring task creation will follow the source implementation.") },
+              { label: "Delete", action: () => deleteSelectedTask() },
+              { label: "Link", action: () => $("dependencyForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Unlink", action: () => deleteSelectedDependency() },
+              { label: "Split", action: () => notify("Split task is a planned schedule edit action.") },
+              { label: "Indent", action: () => notify("Indent will be wired to hierarchy editing.") },
+              { label: "Outdent", action: () => notify("Outdent will be wired to hierarchy editing.") },
+              { label: "Expand", action: () => notify("Expand all/selected will be added with tree controls.") },
+              { label: "Collapse", action: () => notify("Collapse all/selected will be added with tree controls.") },
+              { label: "Scroll to Task", action: () => notify("Scroll to task will center the selection in the chart.") },
+              { label: "Information", action: () => $("taskForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Notes", action: () => $("taskNotes").focus() },
+              { label: "Assign Resources", action: () => $("assignmentForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Delegate Tasks", action: () => notify("Delegate tasks is a future workflow action.") },
+              { label: "Update Tasks", action: () => recalculateWorkspace() },
               { label: "Recalculate", action: () => recalculateWorkspace() },
             ],
           },
           {
             title: "Structure",
             buttons: [
-              { label: "Indents", action: () => notify("Indent and outdent will follow the selected task soon.") },
-              { label: "Link Tasks", action: () => $("dependencyForm").scrollIntoView({ behavior: "smooth" }) },
               { label: "Milestone", action: () => toggleSelectedTaskMilestone() },
+              { label: "Task Usage Detail", action: () => switchView("taskUsageDetail") },
+              { label: "Network", action: () => switchView("network") },
+              { label: "WBS", action: () => switchView("wbs") },
             ],
           },
         ],
@@ -1041,7 +1071,11 @@
           {
             title: "Resources",
             buttons: [
-              { label: "New Resource", action: () => $("resourceForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Insert Resource", action: () => $("resourceForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Resources", action: () => switchView("resources") },
+              { label: "RBS", action: () => switchView("rbs") },
+              { label: "Resource Usage Detail", action: () => switchView("resourceUsageDetail") },
+              { label: "Resource Usage", action: () => switchView("resourceUsage") },
               { label: "New Assignment", action: () => $("assignmentForm").scrollIntoView({ behavior: "smooth" }) },
               { label: "Delete Resource", action: () => deleteSelectedResource() },
             ],
@@ -1050,49 +1084,49 @@
             title: "Planning",
             buttons: [
               { label: "Capture Baseline", action: () => captureBaseline() },
-              { label: "Calendar", action: () => switchView("calendar") },
-            ],
-          },
-        ],
-        Project: [
-          {
-            title: "Project",
-            buttons: [
-              { label: "Save Project", action: () => $("projectForm").requestSubmit() },
-              { label: "Delete Project", action: () => deleteSelectedProject() },
-              { label: "Baseline", action: () => captureBaseline() },
-            ],
-          },
-          {
-            title: "Scheduling",
-            buttons: [
-              { label: "Recalculate", action: () => recalculateWorkspace() },
-              { label: "Zoom Week", action: () => setZoom("week") },
-              { label: "Zoom Month", action: () => setZoom("month") },
+              { label: "Level Resources", action: () => notify("Resource leveling will follow the source algorithm.") },
+              { label: "Change Working Time", action: () => $("calendarForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Project Information", action: () => $("projectForm").scrollIntoView({ behavior: "smooth" }) },
             ],
           },
         ],
         View: [
           {
-            title: "Views",
-            buttons: viewModes.map((view) => ({ label: view.label, action: () => switchView(view.id) })),
-          },
-          {
-            title: "Display",
+            title: "Task Views",
             buttons: [
-              { label: "Day", action: () => setZoom("day") },
-              { label: "Week", action: () => setZoom("week") },
-              { label: "Month", action: () => setZoom("month") },
-              { label: "Quarter", action: () => setZoom("quarter") },
+              { label: "Gantt", action: () => switchView("gantt") },
+              { label: "Tracking Gantt", action: () => switchView("tracking") },
+              { label: "Task Usage Detail", action: () => switchView("taskUsageDetail") },
+              { label: "Network", action: () => switchView("network") },
+              { label: "WBS", action: () => switchView("wbs") },
             ],
           },
-        ],
-        Help: [
           {
-            title: "About",
+            title: "Resource Views",
             buttons: [
-              { label: "ProjectLibre", action: () => notify("MicroProject is being rewritten in Rust and Tauri to mirror ProjectLibre more closely.") },
-              { label: "Documentation", action: () => notify("Use the backend snapshot and the ProjectLibre source tree as the implementation reference.") },
+              { label: "Resource Usage Detail", action: () => switchView("resourceUsageDetail") },
+              { label: "Resources", action: () => switchView("resources") },
+              { label: "RBS", action: () => switchView("rbs") },
+              { label: "Resource Usage", action: () => switchView("resourceUsage") },
+              { label: "Projects", action: () => switchView("projects") },
+            ],
+          },
+          {
+            title: "Sub-Views",
+            buttons: [
+              { label: "Histogram", action: () => switchView("histogram") },
+              { label: "Charts", action: () => switchView("charts") },
+              { label: "No Sub Window", action: () => switchView("gantt") },
+            ],
+          },
+          {
+            title: "Filters / Sort / Group",
+            buttons: [
+              { label: "Choose Filter", action: () => $("filterSelect").focus() },
+              { label: "Choose Sort", action: () => $("sortSelect").focus() },
+              { label: "Choose Group", action: () => notify("Grouping controls are being mapped to the ProjectLibre transformers.") },
+              { label: "Zoom In", action: () => setZoom(zoomStep(+1)) },
+              { label: "Zoom Out", action: () => setZoom(zoomStep(-1)) },
             ],
           },
         ],
@@ -1153,6 +1187,12 @@
 
       function formatIso(date) {
         return date.toISOString().slice(0, 10);
+      }
+
+      function zoomStep(delta) {
+        const order = ["day", "week", "month", "quarter"];
+        const index = Math.max(0, Math.min(order.length - 1, order.indexOf(state.zoom) + delta));
+        return order[index];
       }
 
       function projectTasks(projectId) {
@@ -1419,10 +1459,26 @@
 
       function renderViewButtons() {
         const container = $("viewButtons");
-        container.innerHTML = viewModes
+        const groups = [
+          { title: "Task Views", items: viewModes.filter((view) => ["gantt", "tracking", "taskUsageDetail", "network", "wbs"].includes(view.id)) },
+          { title: "Resource Views", items: viewModes.filter((view) => ["resourceUsageDetail", "resources", "rbs", "resourceUsage", "projects"].includes(view.id)) },
+          { title: "Sub-Views", items: viewModes.filter((view) => ["histogram", "charts"].includes(view.id)) },
+        ];
+        container.innerHTML = groups
           .map(
-            (view) => `
-              <button class="${view.id === state.activeView ? "active" : ""}" data-view="${view.id}" type="button">${view.label}</button>
+            (group) => `
+              <div class="view-group">
+                <div class="ribbon-group-title">${group.title}</div>
+                <div class="view-list">
+                  ${group.items
+                    .map(
+                      (view) => `
+                        <button class="${view.id === state.activeView ? "active" : ""}" data-view="${view.id}" type="button">${view.label}</button>
+                      `
+                    )
+                    .join("")}
+                </div>
+              </div>
             `
           )
           .join("");
@@ -1507,13 +1563,43 @@
           return;
         }
 
-        if (state.activeView === "resource") {
+        if (state.activeView === "tracking") {
+          renderGanttLikeView("Tracking Gantt");
+          return;
+        }
+
+        if (state.activeView === "taskUsageDetail") {
+          renderTaskUsageDetailView();
+          return;
+        }
+
+        if (state.activeView === "resourceUsageDetail") {
+          renderResourceUsageDetailView();
+          return;
+        }
+
+        if (state.activeView === "resourceUsage") {
+          renderResourceUsageSummaryView();
+          return;
+        }
+
+        if (state.activeView === "taskUsage") {
+          renderTaskUsageSummaryView();
+          return;
+        }
+
+        if (state.activeView === "resources") {
           renderResourceSheet();
           return;
         }
 
-        if (state.activeView === "calendar") {
-          renderCalendarView();
+        if (state.activeView === "projects") {
+          renderProjectsView();
+          return;
+        }
+
+        if (state.activeView === "rbs") {
+          renderRbsView();
           return;
         }
 
@@ -1522,11 +1608,27 @@
           return;
         }
 
+        if (state.activeView === "histogram") {
+          renderHistogramView();
+          return;
+        }
+
+        if (state.activeView === "charts") {
+          renderChartsView();
+          return;
+        }
+
         if (state.activeView === "wbs") {
           renderWbsView();
           return;
         }
 
+        renderGanttLikeView("Gantt");
+      }
+
+      function renderGanttLikeView(title) {
+        const tasks = orderedVisibleTasks();
+        const project = selectedProject();
         const timeline = buildTimeline(tasks);
         const width = timeline.columns.length * timeline.unitWidth;
 
@@ -1617,6 +1719,324 @@
         `;
 
         requestAnimationFrame(drawDependencyLinks);
+      }
+
+      function renderTaskUsageDetailView() {
+        const tasks = orderedVisibleTasks();
+        const project = selectedProject();
+        const assignments = projectAssignments(project.id);
+        const timeline = buildTimeline(tasks);
+        const width = timeline.columns.length * timeline.unitWidth;
+
+        $("canvasBody").innerHTML = `
+          <div class="sheet-grid">
+            <section class="sheet">
+              <div class="sheet-header">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:64px">WBS</th>
+                      <th>Task Name</th>
+                      <th style="width:72px">Duration</th>
+                      <th style="width:90px">Start</th>
+                      <th style="width:90px">Finish</th>
+                      <th style="width:120px">Predecessors</th>
+                      <th style="width:140px">Resource Names</th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
+              <div class="sheet-body">
+                <table>
+                  <tbody>
+                    ${tasks
+                      .map((task) => {
+                        const selected = task.id === state.selectedTaskId ? "selected" : "";
+                        const summary = task.children_count ? "summary-row" : "";
+                        const level = Math.max(1, Number(task.outline_level || 1));
+                        const predecessors = taskPredecessors(project.id, task.id).join(", ") || "—";
+                        const resources = taskResourceNames(project.id, task.id).join(", ") || "—";
+                        return `
+                          <tr class="${selected} ${summary}" data-task-row="${task.id}">
+                            <td>${escapeHtml(task.wbs || "")}</td>
+                            <td>
+                              <div class="task-name" style="--level:${level}">
+                                <span class="task-indent"></span>
+                                <span>${escapeHtml(task.name)}</span>
+                                ${task.milestone ? '<span class="task-badge">Milestone</span>' : ""}
+                              </div>
+                            </td>
+                            <td>${escapeHtml(String(task.duration_hours ?? 0))}h</td>
+                            <td>${escapeHtml(formatDate(task.calculated_start_date || task.start_date))}</td>
+                            <td>${escapeHtml(formatDate(task.calculated_finish_date || task.finish_date))}</td>
+                            <td>${escapeHtml(predecessors)}</td>
+                            <td>${escapeHtml(resources)}</td>
+                          </tr>
+                        `;
+                      })
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            <section class="gantt">
+              <div class="gantt-header">
+                <div class="gantt-header-grid" style="--unit-width:${timeline.unitWidth}px; width:${width}px">
+                  ${timeline.columns.map((column) => `<div class="cell">${escapeHtml(columnLabel(column))}</div>`).join("")}
+                </div>
+              </div>
+              <div class="gantt-body" id="ganttBody" style="--unit-width:${timeline.unitWidth}px; min-width:${width}px">
+                <svg class="gantt-lines" id="ganttLines"></svg>
+                ${tasks
+                  .map((task) => {
+                    const { start, finish } = taskStartAndFinish(task);
+                    const startUnits = unitDistance(timeline.start, start || timeline.start);
+                    const durationUnits = Math.max(1, unitDistance(start || timeline.start, finish || start || timeline.start) + 1);
+                    const left = startUnits * timeline.unitWidth;
+                    const barWidth = Math.max(timeline.unitWidth / 2, durationUnits * timeline.unitWidth - 6);
+                    const selected = task.id === state.selectedTaskId ? "selected" : "";
+                    const progress = Math.max(0, Math.min(100, Number(task.percent_complete || 0)));
+                    return `
+                      <div class="gantt-row ${selected}" data-task-gantt="${task.id}" style="min-width:${width}px">
+                        <div class="gantt-row-bg"></div>
+                        <div class="gantt-row-content">
+                          <div class="gantt-bar ${task.children_count ? "summary" : ""}" data-task-bar="${task.id}" style="left:${left}px; width:${barWidth}px">
+                            <div class="progress" style="width:${progress}%"></div>
+                            <div class="label">${escapeHtml(task.name)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            </section>
+          </div>
+        `;
+
+        requestAnimationFrame(drawDependencyLinks);
+      }
+
+      function renderResourceUsageDetailView() {
+        const resources = projectResources(state.selectedProjectId);
+        const project = selectedProject();
+        const assignments = projectAssignments(project.id);
+        $("canvasBody").innerHTML = `
+          <div class="stack">
+            <div class="panel-card">
+              <header>Resource Usage Detail</header>
+              <div class="body">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th style="width:120px">Type</th>
+                      <th style="width:130px">Assignments</th>
+                      <th style="width:130px">Max Units</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${resources
+                      .map((resource) => {
+                        const count = assignments.filter((assignment) => assignment.resource_id === resource.id).length;
+                        return `
+                          <tr class="${resource.id === state.selectedResourceId ? "selected" : ""}" data-resource-row="${resource.id}">
+                            <td>${escapeHtml(resource.name)}</td>
+                            <td>${escapeHtml(resource.resource_type)}</td>
+                            <td>${escapeHtml(String(count))}</td>
+                            <td>${escapeHtml(String(resource.max_units || 0))}%</td>
+                          </tr>
+                        `;
+                      })
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderTaskUsageSummaryView() {
+        const tasks = orderedVisibleTasks();
+        $("canvasBody").innerHTML = `
+          <div class="panel-card">
+            <header>Task Usage</header>
+            <div class="body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Task</th>
+                    <th style="width:140px">Percent Complete</th>
+                    <th style="width:160px">Duration</th>
+                    <th style="width:180px">Resources</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tasks
+                    .map((task) => `
+                      <tr class="${task.id === state.selectedTaskId ? "selected" : ""}" data-task-row="${task.id}">
+                        <td>${escapeHtml(task.name)}</td>
+                        <td><div class="pill" style="border-radius:4px">${escapeHtml(String(Math.round(task.percent_complete || 0)))}%</div></td>
+                        <td>${escapeHtml(String(task.duration_hours ?? 0))}h</td>
+                        <td>${escapeHtml(taskResourceNames(state.selectedProjectId, task.id).join(", ") || "—")}</td>
+                      </tr>
+                    `)
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderResourceUsageSummaryView() {
+        const resources = projectResources(state.selectedProjectId);
+        $("canvasBody").innerHTML = `
+          <div class="panel-card">
+            <header>Resource Usage</header>
+            <div class="body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Resource</th>
+                    <th style="width:140px">Units</th>
+                    <th style="width:180px">Assignments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${resources
+                    .map((resource) => {
+                      const assignments = projectAssignments(state.selectedProjectId).filter((assignment) => assignment.resource_id === resource.id);
+                      return `
+                        <tr class="${resource.id === state.selectedResourceId ? "selected" : ""}" data-resource-row="${resource.id}">
+                          <td>${escapeHtml(resource.name)}</td>
+                          <td>${escapeHtml(String(resource.max_units || 0))}%</td>
+                          <td>${escapeHtml(assignments.map((assignment) => assignment.task_id).join(", ") || "—")}</td>
+                        </tr>
+                      `;
+                    })
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderProjectsView() {
+        $("canvasBody").innerHTML = `
+          <div class="panel-card">
+            <header>Projects</header>
+            <div class="body">
+              <div class="project-list">
+                ${state.snapshot.projects
+                  .map(
+                    (project) => `
+                      <div class="project-card ${project.id === state.selectedProjectId ? "active" : ""}" data-open-project="${project.id}">
+                        <div class="name">${escapeHtml(project.name)}</div>
+                        <div class="muted small">${escapeHtml(formatDate(project.start_date))} → ${escapeHtml(formatDate(project.finish_date))}</div>
+                        <div class="muted small">${projectTasks(project.id).length} tasks · ${projectDependencies(project.id).length} links · ${projectResources(project.id).length} resources</div>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderRbsView() {
+        const resources = projectResources(state.selectedProjectId);
+        const grouped = resources.reduce((map, resource) => {
+          const key = resource.group || resource.resource_type || "Ungrouped";
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(resource);
+          return map;
+        }, new Map());
+        $("canvasBody").innerHTML = `
+          <div class="stack">
+            ${Array.from(grouped.entries())
+              .map(
+                ([group, items]) => `
+                  <div class="panel-card">
+                    <header>${escapeHtml(group)}</header>
+                    <div class="body">
+                      <div class="project-list">
+                        ${items
+                          .map(
+                            (resource) => `
+                              <div class="project-card ${resource.id === state.selectedResourceId ? "active" : ""}" data-resource-row="${resource.id}">
+                                <div class="name">${escapeHtml(resource.name)}</div>
+                                <div class="muted small">${escapeHtml(resource.resource_type)} · ${escapeHtml(String(resource.max_units || 0))}%</div>
+                              </div>
+                            `
+                          )
+                          .join("")}
+                      </div>
+                    </div>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function renderHistogramView() {
+        const tasks = orderedVisibleTasks();
+        $("canvasBody").innerHTML = `
+          <div class="panel-card">
+            <header>Histogram</header>
+            <div class="body">
+              ${tasks
+                .map((task) => {
+                  const width = Math.max(8, Math.min(100, Number(task.percent_complete || 0)));
+                  return `
+                    <div style="display:grid; grid-template-columns: 260px 1fr; gap:12px; align-items:center; margin-bottom:8px">
+                      <div>${escapeHtml(task.name)}</div>
+                      <div style="height:16px; background:#dbe6f3; border:1px solid #b8c6d8; position:relative">
+                        <div style="height:100%; width:${width}%; background:linear-gradient(180deg, #6ea0d5, #3b6ea8)"></div>
+                      </div>
+                    </div>
+                  `;
+                })
+                .join("")}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderChartsView() {
+        const project = selectedProject();
+        $("canvasBody").innerHTML = `
+          <div class="stack">
+            <div class="panel-card">
+              <header>Charts</header>
+              <div class="body">
+                <div class="row">
+                  <div class="summary-box">
+                    <div class="muted small">Project</div>
+                    <div style="font-weight:700">${escapeHtml(project?.name || "none")}</div>
+                  </div>
+                  <div class="summary-box">
+                    <div class="muted small">Tasks</div>
+                    <div style="font-weight:700">${escapeHtml(String(project ? projectTasks(project.id).length : 0))}</div>
+                  </div>
+                  <div class="summary-box">
+                    <div class="muted small">Resources</div>
+                    <div style="font-weight:700">${escapeHtml(String(project ? projectResources(project.id).length : 0))}</div>
+                  </div>
+                  <div class="summary-box">
+                    <div class="muted small">Dependencies</div>
+                    <div style="font-weight:700">${escapeHtml(String(project ? projectDependencies(project.id).length : 0))}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
       }
 
       function renderWbsView() {
@@ -1897,10 +2317,19 @@
 
       function renderScreenHeader() {
         const map = {
-          gantt: ["Gantt Chart", "Task spreadsheet and schedule bars"],
-          wbs: ["WBS", "Hierarchical task breakdown and outline"],
-          network: ["Network Diagram", "Task dependency network and links"],
-          resource: ["Resource Sheet", "Resource management and assignments"],
+          gantt: ["Gantt", "Task table and schedule bars"],
+          tracking: ["Tracking Gantt", "Baseline-aware schedule bars"],
+          taskUsageDetail: ["Task Usage Detail", "Task-centric usage and assignment detail"],
+          resourceUsageDetail: ["Resource Usage Detail", "Resource-centric usage and assignment detail"],
+          network: ["Network", "Task dependency network"],
+          wbs: ["WBS", "Hierarchical task breakdown"],
+          rbs: ["RBS", "Resource breakdown structure"],
+          resources: ["Resources", "Resource sheet"],
+          projects: ["Projects", "Project list and overview"],
+          taskUsage: ["Task Usage", "Task usage summary"],
+          resourceUsage: ["Resource Usage", "Resource usage summary"],
+          histogram: ["Histogram", "Work distribution by task"],
+          charts: ["Charts", "Project summaries and status"],
           calendar: ["Calendar", "Working days and calendar setup"],
         };
         const [title, subtitle] = map[state.activeView] || map.gantt;
