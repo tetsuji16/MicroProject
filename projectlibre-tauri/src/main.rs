@@ -1,11 +1,7 @@
-mod engine;
 mod commands;
-mod interop;
-mod models;
-mod storage;
 
 use commands::*;
-use storage::{AppState, AppStore};
+use projectlibre_tauri_backend::{AppState, AppStore};
 
 fn main() {
     let state = AppState::new(AppStore::load_or_default());

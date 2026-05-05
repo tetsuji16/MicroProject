@@ -537,6 +537,8 @@
       const state = {
         snapshot: null,
         selectedProjectId: null,
+        editingProjectId: null,
+        editingTaskId: null,
         status: "Loading workspace..."
       };
 
@@ -612,6 +614,7 @@
                 <p class="muted">${escapeHtml(project.description || "No description")}</p>
                 <div class="muted small">${formatDate(project.start_date)} → ${formatDate(project.finish_date)}</div>
                 <div class="actions" style="margin-top:10px">
+                  <button class="ghost" type="button" data-edit-project="${project.id}">Edit</button>
                   <button class="ghost" type="button" data-select-project="${project.id}">Open</button>
                   <button class="danger" type="button" data-delete-project="${project.id}">Delete</button>
                 </div>
@@ -641,6 +644,7 @@
               </div>
               <div class="muted small">${formatDate(task.start_date)} → ${formatDate(task.finish_date)}</div>
               <div class="actions" style="margin-top:10px">
+                <button class="ghost" type="button" data-edit-task="${task.id}">Edit</button>
                 <button class="danger" type="button" data-delete-task="${task.id}">Delete</button>
               </div>
             </div>
@@ -823,15 +827,17 @@
 
       async function submitProject(event) {
         event.preventDefault();
+        const projectId = state.editingProjectId;
         const payload = {
-          id: null,
+          id: projectId,
           name: $("projectName").value,
           description: $("projectDescription").value || null,
           start_date: $("projectStart").value || null,
           finish_date: $("projectFinish").value || null,
         };
         state.snapshot = await invoke("workspace_upsert_project", { input: payload });
-        state.selectedProjectId = state.snapshot.projects[state.snapshot.projects.length - 1]?.id || state.selectedProjectId;
+        state.selectedProjectId = projectId || state.snapshot.projects[state.snapshot.projects.length - 1]?.id || state.selectedProjectId;
+        state.editingProjectId = null;
         $("projectForm").reset();
         state.status = `Project saved: ${payload.name}`;
         render();
@@ -844,8 +850,9 @@
           render();
           return;
         }
+        const taskId = state.editingTaskId;
         const payload = {
-          id: null,
+          id: taskId,
           project_id: state.selectedProjectId,
           name: $("taskName").value,
           description: null,
@@ -856,6 +863,7 @@
           sort_order: Number($("taskSortOrder").value || 0),
         };
         state.snapshot = await invoke("workspace_upsert_task", { input: payload });
+        state.editingTaskId = null;
         $("taskForm").reset();
         $("taskPercent").value = "0";
         $("taskSortOrder").value = "0";
@@ -998,7 +1006,9 @@
         if (!(target instanceof HTMLElement)) return;
 
         const selectProjectId = target.dataset.selectProject;
+        const editProjectId = target.dataset.editProject;
         const deleteProjectId = target.dataset.deleteProject;
+        const editTaskId = target.dataset.editTask;
         const deleteTaskId = target.dataset.deleteTask;
         const deleteDependencyId = target.dataset.deleteDependency;
         const deleteCalendarId = target.dataset.deleteCalendar;
@@ -1008,6 +1018,20 @@
         if (selectProjectId) {
           state.selectedProjectId = selectProjectId;
           state.status = "Project opened.";
+          render();
+          return;
+        }
+
+        if (editProjectId) {
+          const project = state.snapshot.projects.find((item) => item.id === editProjectId);
+          if (!project) return;
+          state.editingProjectId = project.id;
+          $("projectName").value = project.name || "";
+          $("projectDescription").value = project.description || "";
+          $("projectStart").value = project.start_date || "";
+          $("projectFinish").value = project.finish_date || "";
+          state.selectedProjectId = project.id;
+          state.status = "Editing project.";
           render();
           return;
         }
@@ -1025,6 +1049,21 @@
         if (deleteTaskId) {
           state.snapshot = await invoke("workspace_delete_task", { task_id: deleteTaskId });
           state.status = "Task deleted.";
+          render();
+          return;
+        }
+
+        if (editTaskId) {
+          const task = state.snapshot.tasks.find((item) => item.id === editTaskId);
+          if (!task) return;
+          state.editingTaskId = task.id;
+          $("taskName").value = task.name || "";
+          $("taskStart").value = task.start_date || "";
+          $("taskFinish").value = task.finish_date || "";
+          $("taskPercent").value = String(task.percent_complete || 0);
+          $("taskSortOrder").value = String(task.sort_order || 0);
+          state.selectedProjectId = task.project_id;
+          state.status = "Editing task.";
           render();
           return;
         }
