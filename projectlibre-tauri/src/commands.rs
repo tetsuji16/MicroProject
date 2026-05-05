@@ -1,231 +1,61 @@
-use crate::{models::*, storage::AppState};
-use tauri::State;
+// Lightweight TAURI command stubs for MVP
 
-pub type CommandResult<T> = Result<T, String>;
-
-#[tauri::command]
-pub fn workspace_snapshot(state: State<'_, AppState>) -> CommandResult<WorkspaceSnapshot> {
-    let store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    Ok(store.snapshot())
-}
+#[allow(unused_imports)]
+use super::models::{Workspace, Project};
 
 #[tauri::command]
-pub fn workspace_export_json(state: State<'_, AppState>) -> CommandResult<String> {
-    let store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.export_json()
-}
+fn workspace_snapshot() -> String { "snapshot".to_string() }
 
 #[tauri::command]
-pub fn workspace_export_xml(state: State<'_, AppState>) -> CommandResult<String> {
-    let store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.export_xml()
-}
+fn workspace_export_json() -> String { "export_json".to_string() }
 
 #[tauri::command]
-pub fn workspace_import_json(state: State<'_, AppState>, json: String) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.import_json(&json)?;
-    Ok(store.snapshot())
-}
+fn workspace_export_xml() -> String { "export_xml".to_string() }
 
 #[tauri::command]
-pub fn workspace_import_xml(state: State<'_, AppState>, xml: String) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.import_xml(&xml)?;
-    Ok(store.snapshot())
-}
+fn workspace_import_json(_data: String) -> String { "import_json".to_string() }
 
 #[tauri::command]
-pub fn workspace_recalculate(state: State<'_, AppState>) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.recalculate_all_and_save()?;
-    Ok(store.snapshot())
-}
+fn workspace_import_xml(_data: String) -> String { "import_xml".to_string() }
 
 #[tauri::command]
-pub fn workspace_upsert_project(
-    state: State<'_, AppState>,
-    input: ProjectInput,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.upsert_project(input)?;
-    Ok(store.snapshot())
-}
+fn workspace_recalculate() -> String { "recalculate".to_string() }
 
 #[tauri::command]
-pub fn workspace_delete_project(
-    state: State<'_, AppState>,
-    project_id: String,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.delete_project(&project_id)?;
-    Ok(store.snapshot())
-}
+fn workspace_upsert_project(name: String) -> String { format!("upsert_project:{}", name) }
 
 #[tauri::command]
-pub fn workspace_upsert_task(
-    state: State<'_, AppState>,
-    input: TaskInput,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.upsert_task(input)?;
-    Ok(store.snapshot())
-}
+fn workspace_delete_project(id: String) -> String { id }
 
 #[tauri::command]
-pub fn workspace_delete_task(
-    state: State<'_, AppState>,
-    task_id: String,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.delete_task(&task_id)?;
-    Ok(store.snapshot())
-}
+fn workspace_upsert_task(_project_id: String, _task_name: String) -> String { "upsert_task".to_string() }
 
 #[tauri::command]
-pub fn workspace_upsert_dependency(
-    state: State<'_, AppState>,
-    input: DependencyInput,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.upsert_dependency(input)?;
-    Ok(store.snapshot())
-}
+fn workspace_delete_task(_task_id: String) -> String { "delete_task".to_string() }
 
 #[tauri::command]
-pub fn workspace_delete_dependency(
-    state: State<'_, AppState>,
-    dependency_id: String,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.delete_dependency(&dependency_id)?;
-    Ok(store.snapshot())
-}
+fn workspace_upsert_dependency(_task_id: String, _dep: String) -> String { "upsert_dependency".to_string() }
 
 #[tauri::command]
-pub fn workspace_upsert_resource(
-    state: State<'_, AppState>,
-    input: ResourceInput,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.upsert_resource(input)?;
-    Ok(store.snapshot())
-}
+fn workspace_delete_dependency(_dep_id: String) -> String { "delete_dependency".to_string() }
 
 #[tauri::command]
-pub fn workspace_delete_resource(
-    state: State<'_, AppState>,
-    resource_id: String,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.delete_resource(&resource_id)?;
-    Ok(store.snapshot())
-}
+fn workspace_upsert_resource(_name: String) -> String { "upsert_resource".to_string() }
 
 #[tauri::command]
-pub fn workspace_upsert_assignment(
-    state: State<'_, AppState>,
-    input: AssignmentInput,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.upsert_assignment(input)?;
-    Ok(store.snapshot())
-}
+fn workspace_delete_resource(_res_id: String) -> String { "delete_resource".to_string() }
 
 #[tauri::command]
-pub fn workspace_delete_assignment(
-    state: State<'_, AppState>,
-    assignment_id: String,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.delete_assignment(&assignment_id)?;
-    Ok(store.snapshot())
-}
+fn workspace_upsert_assignment(_task_id: String, _res_id: String) -> String { "upsert_assignment".to_string() }
 
 #[tauri::command]
-pub fn workspace_upsert_calendar(
-    state: State<'_, AppState>,
-    input: CalendarInput,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.upsert_calendar(input)?;
-    Ok(store.snapshot())
-}
+fn workspace_delete_assignment(_assn_id: String) -> String { "delete_assignment".to_string() }
 
 #[tauri::command]
-pub fn workspace_delete_calendar(
-    state: State<'_, AppState>,
-    calendar_id: String,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.delete_calendar(&calendar_id)?;
-    Ok(store.snapshot())
-}
+fn workspace_upsert_calendar(_name: String) -> String { "upsert_calendar".to_string() }
 
 #[tauri::command]
-pub fn workspace_capture_baseline(
-    state: State<'_, AppState>,
-    project_id: String,
-    name: Option<String>,
-) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state
-        .store
-        .lock()
-        .map_err(|_| "workspace store lock poisoned".to_string())?;
-    store.capture_baseline(&project_id, name)?;
-    Ok(store.snapshot())
-}
+fn workspace_delete_calendar(_cal_id: String) -> String { "delete_calendar".to_string() }
+
+#[tauri::command]
+fn workspace_capture_baseline() -> String { "capture_baseline".to_string() }

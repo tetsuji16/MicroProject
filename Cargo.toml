@@ -1,0 +1,2 @@
+[workspace]
+members = ["projectlibre-tauri", "projectlibre-tauri/backend"]
