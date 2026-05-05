@@ -34,6 +34,7 @@ MicroProject now follows a wrapper-first migration path:
   - `export_mpp`
   - `quit`
 - Rust currently compiles the bridge for Java 8 bytecode, launches it on demand, and seeds the process with sample `.mpp` files from the imported ProjectLibre snapshot.
+- Rust now also owns the default bridge state in-process. Java is kept as an opt-in fallback behind `MICROPROJECT_USE_JAVA_BRIDGE=1`.
 - The next protocol layer should map those bridge calls onto real ProjectLibre behaviors instead of echo responses.
 
 ## Porting Rule

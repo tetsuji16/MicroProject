@@ -6,9 +6,9 @@ MicroProject is the public home for a ProjectLibre latest-snapshot import and a 
 
 - Upstream reference snapshot: ProjectLibre `master` from SourceForge at commit `0530be227f4a10c5545cce8d3db20ac5a4d76a66`.
 - Imported source lives in [`upstream/projectlibre-snapshot`](./upstream/projectlibre-snapshot).
-- The migration target is a Rust + Tauri shell that first wraps the Java ProjectLibre code and later replaces it slice by slice.
+- The migration target is a Rust + Tauri shell that first wraps the Java ProjectLibre code and then replaces it slice by slice.
 - The wrapper strategy is documented in [`JAVA_BRIDGE.md`](./JAVA_BRIDGE.md).
-- The current implementation already launches a Java bridge process from Rust, compiled for Java 8 compatibility and seeded with sample `.mpp` files from the imported snapshot.
+- The current implementation is Rust-first: bridge state, sample discovery, and command routing live in Rust, while Java remains an opt-in fallback via `MICROPROJECT_USE_JAVA_BRIDGE=1`.
 - The repo is intentionally split so upstream provenance stays visible while the new app evolves independently.
 
 ## What This Repo Contains

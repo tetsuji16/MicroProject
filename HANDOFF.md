@@ -15,7 +15,8 @@ This repository is the shared workspace for two connected tracks:
   - Upstream code remains CPAL 1.0 with its own notices inside the imported tree.
   - New migration work is documented separately at the repo root.
 - Strategy:
-  - Rust launches and orchestrates a Java adapter first.
+  - Rust now owns the default bridge state and command routing.
+  - Java stays available as an opt-in fallback for comparison.
   - The Java side is the behavior reference for `.mpp` import, compatibility, and ProjectLibre UI details.
   - Rust replaces Java only after each behavior slice is proven stable.
 
