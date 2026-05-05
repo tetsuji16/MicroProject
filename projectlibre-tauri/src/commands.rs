@@ -1,6 +1,7 @@
+use crate::java_bridge::{JavaBridgeState, JavaBridgeStatus};
 use projectlibre_tauri_backend::{
-    AppState, AssignmentInput, CalendarInput, DependencyInput, ProjectInput, ResourceInput, TaskInput,
-    WorkspaceSnapshot,
+    AppState, AssignmentInput, CalendarInput, DependencyInput, ProjectInput, ResourceInput,
+    TaskInput, WorkspaceSnapshot,
 };
 use tauri::State;
 
@@ -25,15 +26,27 @@ pub fn workspace_export_xml(state: State<'_, AppState>) -> CommandResult<String>
 }
 
 #[tauri::command]
-pub fn workspace_import_json(state: State<'_, AppState>, json: String) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state.store.lock().map_err(|_| "workspace store lock poisoned".to_string())?;
+pub fn workspace_import_json(
+    state: State<'_, AppState>,
+    json: String,
+) -> CommandResult<WorkspaceSnapshot> {
+    let mut store = state
+        .store
+        .lock()
+        .map_err(|_| "workspace store lock poisoned".to_string())?;
     store.import_json(&json)?;
     Ok(store.snapshot())
 }
 
 #[tauri::command]
-pub fn workspace_import_xml(state: State<'_, AppState>, xml: String) -> CommandResult<WorkspaceSnapshot> {
-    let mut store = state.store.lock().map_err(|_| "workspace store lock poisoned".to_string())?;
+pub fn workspace_import_xml(
+    state: State<'_, AppState>,
+    xml: String,
+) -> CommandResult<WorkspaceSnapshot> {
+    let mut store = state
+        .store
+        .lock()
+        .map_err(|_| "workspace store lock poisoned".to_string())?;
     store.import_xml(&xml)?;
     Ok(store.snapshot())
 }
@@ -138,4 +151,43 @@ pub fn workspace_capture_baseline(
     let mut store = state.store.lock().map_err(|_| "workspace store lock poisoned".to_string())?;
     store.capture_baseline(&project_id, name)?;
     Ok(store.snapshot())
+}
+
+#[tauri::command]
+pub fn java_bridge_status(state: State<'_, JavaBridgeState>) -> CommandResult<JavaBridgeStatus> {
+    Ok(state.status())
+}
+
+#[tauri::command]
+pub fn java_bridge_ping(state: State<'_, JavaBridgeState>) -> CommandResult<serde_json::Value> {
+    state.ping()
+}
+
+#[tauri::command]
+pub fn java_bridge_snapshot(state: State<'_, JavaBridgeState>) -> CommandResult<serde_json::Value> {
+    state.snapshot()
+}
+
+#[tauri::command]
+pub fn java_bridge_open_mpp(
+    state: State<'_, JavaBridgeState>,
+    path: String,
+) -> CommandResult<serde_json::Value> {
+    state.open_mpp(&path)
+}
+
+#[tauri::command]
+pub fn java_bridge_import_mpp(
+    state: State<'_, JavaBridgeState>,
+    path: String,
+) -> CommandResult<serde_json::Value> {
+    state.import_mpp(&path)
+}
+
+#[tauri::command]
+pub fn java_bridge_export_mpp(
+    state: State<'_, JavaBridgeState>,
+    path: String,
+) -> CommandResult<serde_json::Value> {
+    state.export_mpp(&path)
 }

@@ -1,20 +1,5 @@
-# Contributing
-
-## How We Work
-
-- Keep changes small and easy to review.
-- Do not rewrite or reformat the imported upstream snapshot unless the change is strictly for provenance or licensing.
-- Prefer one vertical slice at a time: model, storage, command, UI, test.
-
-## Code Style
-
-- Use Rust idioms and explicit types where they improve clarity.
-- Keep new code ASCII-only unless a file already uses non-ASCII text.
-- Add tests around persistence and dependency behavior as the rewrite grows.
-
-## Pull Requests
-
-- Summarize the user-visible change first.
-- Call out whether the change touches upstream snapshot files or only rewrite code.
-- Mention any manual verification steps you ran.
-
+Contributing
+- This project currently exists in a bridge-first migration stage: Java ProjectLibre stays authoritative while Rust/Tauri becomes the host shell.
+- Before contributing, please read [JAVA_BRIDGE.md](./JAVA_BRIDGE.md), [ROADMAP.md](./ROADMAP.md), and [NOTICE](./NOTICE) for licensing and migration goals.
+- How to contribute: open issues, submit PRs to `main` or the active migration branch, and keep changes small enough to compare against the Java reference.
+- Prefer fixes that preserve MS Project compatibility, even if that means leaving a feature implemented in Java for one more slice.

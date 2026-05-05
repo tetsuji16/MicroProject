@@ -568,6 +568,12 @@
         border-bottom: 0;
       }
 
+      .mini-note {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
       .statusbar {
         display: flex;
         align-items: center;
@@ -648,6 +654,25 @@
               <header>Task / Resource Views</header>
               <div class="body">
                 <div class="view-list" id="viewButtons"></div>
+              </div>
+            </div>
+
+            <div class="rail-card">
+              <header>Java Bridge</header>
+              <div class="body">
+                <div class="stack" style="gap:8px">
+                  <span class="pill" id="bridgePill">Bridge idle</span>
+                  <div class="mini-note" id="bridgeSummary">Java bridge has not been started yet.</div>
+                  <select id="bridgeSampleSelect"></select>
+                  <div class="field-grid">
+                    <button class="primary" id="bridgePingBtn" type="button">Ping Java</button>
+                    <button class="ghost" id="bridgeSnapshotBtn" type="button">Bridge Snapshot</button>
+                  </div>
+                  <div class="field-grid">
+                    <button class="ghost" id="bridgeOpenBtn" type="button">Open Sample</button>
+                    <button class="ghost" id="bridgeImportBtn" type="button">Import Sample</button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -979,6 +1004,8 @@
 
       const state = {
         snapshot: null,
+        bridge: null,
+        bridgeError: null,
         status: "Loading workspace...",
         selectedProjectId: null,
         selectedTaskId: null,
@@ -1018,9 +1045,15 @@
             title: "File",
             buttons: [
               { label: "New", action: () => startNewProject() },
-              { label: "Open", action: () => notify("Open project is wired through the workspace snapshot for now.") },
-              { label: "Import MS Project", action: () => notify("MS Project .mpp import is next; sample files are now the reference set.") },
-              { label: "Export MS Project", action: () => notify("MS Project export is being aligned with the ProjectLibre exchange format.") },
+              { label: "Open", action: () => openBridgeSample() },
+              { label: "Import MS Project", action: () => importBridgeSample() },
+              { label: "Export MS Project", action: () => {
+                const target = window.prompt("Export MPP to path:", "C:/Users/tetsu/Desktop/microproject-export.mpp");
+                return target ? invoke("java_bridge_export_mpp", { path: target }).then(() => {
+                  state.status = `Java bridge exported sample to ${target}`;
+                  render();
+                }) : Promise.resolve();
+              } },
               { label: "Save", action: () => $("projectForm").requestSubmit() },
               { label: "Close", action: () => notify("Close project will follow the current document model.") },
               { label: "Print", action: () => notify("Print output will mirror the ProjectLibre report views.") },
@@ -2339,7 +2372,40 @@
 
       function renderStatus() {
         $("statusText").textContent = state.status;
-        $("connectionPill").textContent = state.snapshot ? "Connected" : "Disconnected";
+        if (state.bridgeError) {
+          $("connectionPill").textContent = "Java bridge error";
+        } else if (state.bridge?.running) {
+          $("connectionPill").textContent = state.snapshot ? "Rust + Java connected" : "Java bridge ready";
+        } else {
+          $("connectionPill").textContent = "Java bridge idle";
+        }
+      }
+
+      function renderBridgePanel() {
+        const bridge = state.bridge || {};
+        const sampleFiles = Array.isArray(bridge.sample_files) ? bridge.sample_files : [];
+        const select = $("bridgeSampleSelect");
+        if (select) {
+          const current = select.value;
+          select.innerHTML = sampleFiles.length
+            ? sampleFiles.map((path, index) => `<option value="${escapeHtml(path)}">${escapeHtml(path.split(/[/\\]/).pop() || `Sample ${index + 1}`)}</option>`).join("")
+            : '<option value="">No sample files found</option>';
+          if (current && sampleFiles.includes(current)) {
+            select.value = current;
+          }
+        }
+
+        const summaryParts = [];
+        if (bridge.java_executable) summaryParts.push(`java=${bridge.java_executable}`);
+        if (bridge.javac_executable) summaryParts.push(`javac=${bridge.javac_executable}`);
+        if (bridge.sample_files) summaryParts.push(`${bridge.sample_files.length} sample .mpp file(s)`);
+        if (bridge.opened_project) summaryParts.push(`open=${bridge.opened_project}`);
+        if (state.bridgeError) summaryParts.push(`error=${state.bridgeError}`);
+
+        $("bridgeSummary").textContent = summaryParts.length
+          ? summaryParts.join(" · ")
+          : "Java bridge has not been started yet.";
+        $("bridgePill").textContent = bridge.running ? "Java running" : "Bridge idle";
       }
 
       function render() {
@@ -2353,11 +2419,20 @@
         renderScreenHeader();
         renderInspectorDefaults();
         renderSheetAndGantt();
+        renderBridgePanel();
         renderStatus();
       }
 
       async function refresh() {
         state.snapshot = await invoke("workspace_snapshot");
+        state.bridge = await invoke("java_bridge_status");
+        try {
+          await invoke("java_bridge_ping");
+          state.bridge = await invoke("java_bridge_status");
+          state.bridgeError = null;
+        } catch (error) {
+          state.bridgeError = error.message || String(error);
+        }
         if (!state.selectedProjectId || !state.snapshot.projects.some((project) => project.id === state.selectedProjectId)) {
           state.selectedProjectId = state.snapshot.projects[0] ? state.snapshot.projects[0].id : null;
         }
@@ -2365,6 +2440,54 @@
           state.selectedTaskId = null;
         }
         state.status = state.snapshot.projects.length ? `Loaded ${state.snapshot.projects.length} project(s)` : "Workspace is empty";
+        render();
+      }
+
+      function selectedBridgeSample() {
+        const select = $("bridgeSampleSelect");
+        if (!select || !select.value) {
+          const samples = state.bridge?.sample_files || [];
+          return samples[0] || "";
+        }
+        return select.value;
+      }
+
+      async function pingJavaBridge() {
+        state.bridgeError = null;
+        await invoke("java_bridge_ping");
+        state.bridge = await invoke("java_bridge_status");
+        state.status = "Java bridge ping successful.";
+        render();
+      }
+
+      async function snapshotJavaBridge() {
+        const response = await invoke("java_bridge_snapshot");
+        state.bridge = await invoke("java_bridge_status");
+        state.status = `Java bridge snapshot: ${JSON.stringify(response)}`;
+        render();
+      }
+
+      async function openBridgeSample() {
+        const sample = selectedBridgeSample();
+        if (!sample) {
+          notify("No sample .mpp file was found in the imported ProjectLibre snapshot.");
+          return;
+        }
+        await invoke("java_bridge_open_mpp", { path: sample });
+        state.bridge = await invoke("java_bridge_status");
+        state.status = `Java bridge opened sample: ${sample}`;
+        render();
+      }
+
+      async function importBridgeSample() {
+        const sample = selectedBridgeSample();
+        if (!sample) {
+          notify("No sample .mpp file was found in the imported ProjectLibre snapshot.");
+          return;
+        }
+        await invoke("java_bridge_import_mpp", { path: sample });
+        state.bridge = await invoke("java_bridge_status");
+        state.status = `Java bridge imported sample: ${sample}`;
         render();
       }
 
@@ -2788,6 +2911,10 @@
       }
 
       $("refreshBtn").addEventListener("click", refresh);
+      $("bridgePingBtn").addEventListener("click", pingJavaBridge);
+      $("bridgeSnapshotBtn").addEventListener("click", snapshotJavaBridge);
+      $("bridgeOpenBtn").addEventListener("click", openBridgeSample);
+      $("bridgeImportBtn").addEventListener("click", importBridgeSample);
       $("projectForm").addEventListener("submit", saveProject);
       $("taskForm").addEventListener("submit", saveTask);
       $("dependencyForm").addEventListener("submit", saveDependency);

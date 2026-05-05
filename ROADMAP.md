@@ -1,36 +1,39 @@
 # Roadmap
 
-## Phase 1 - Snapshot Import
+## Phase 0 - Strategy Reset
 
-- Imported the latest ProjectLibre SourceForge snapshot into `upstream/projectlibre-snapshot`.
-- Captured provenance in `NOTICE` and `upstream/README.md`.
-- Create initial snapshot archive placeholder if the real snapshot cannot be fetched immediately.
-- Add CPAL license notice in `upstream/NOTICE` and ensure LICENSEs accompany the snapshot.
+- Treat ProjectLibre Java as the authoritative behavior baseline.
+- Keep the imported snapshot and the manual as the reference set for compatibility work.
+- Use Rust/Tauri as the host shell, not as the first complete reimplementation.
 
-## Phase 2 - Domain Model
+## Phase 1 - Java Bridge
 
-- Define Rust types for projects, tasks, dependencies, resources, assignments, calendars, and baselines.
-- Add validation, serialization, and schedule recalculation for the workspace state.
-- Create a standalone Rust crate under `projectlibre-tauri/backend` for domain models and core logic.
+- Build a Java adapter process that can be launched by the Rust app.
+- Define a small IPC contract for opening projects, importing `.mpp`, exporting `.mpp`, snapshotting workspace state, and triggering recalculation.
+- Keep the bridge protocol JSON-based and easy to debug from the terminal.
+- Wire the Rust shell to the adapter and verify it can open the sample `.mpp` files.
 
-## Phase 3 - Persistence and Commands
+## Phase 2 - Compatibility Parity
 
-- Store workspace state locally in JSON first.
-- Move the core workspace model and store into the Rust backend crate.
-- Add XML interchange so the Rust backend can import/export workspace state in a portable format.
-- Expose Tauri commands for project/task/dependency/resource/assignment/calendar CRUD.
-- Add export/import, edit, and schedule-rebuild commands.
-- Add tests for delete cascades, load/save round trips, XML round trips, and schedule ordering.
-- Implement a basic persistence layer in the backend and wire with simple tests.
+- Compare the bridge output with the ProjectLibre manual and sample files.
+- Align task, resource, calendar, baseline, and dependency behavior with the Java reference.
+- Preserve ProjectLibre terminology in the UI and in the bridge protocol.
+- Add regression tests around the sample `.mpp` files and XML interchange.
 
-## Phase 4 - Frontend
+## Phase 3 - Rust Reimplementation
 
-- Replace placeholder UI with project navigation and task editing screens.
-- Feed a basic Gantt-style timeline from the Rust state.
-- Integrate frontend with backend via TAURI commands and expose initial UI components.
+- Move stable domain objects from Java into Rust one slice at a time.
+- Port persistence, scheduling, and import/export logic in the order that best preserves compatibility.
+- Keep the Java bridge alive until the Rust replacement is verified against the reference behavior.
+
+## Phase 4 - Frontend Migration
+
+- Replace any exploratory UI with screens that mirror the ProjectLibre workflow.
+- Prefer editing forms and command flows that match the manual.
+- Port view logic only after the corresponding bridge-backed behavior is stable.
 
 ## Phase 5 - Feature Growth
 
-- Add calendar rules, task sorting, and import/export.
-- Expand coverage in small slices instead of a large rewrite.
-- Establish a polite feature roadmap for future iterations (Clustering tasks, resource leveling, and cloud sync considerations).
+- Add calendar rules, task sorting, filters, grouping, and resource leveling.
+- Expand coverage in small slices instead of a big-bang rewrite.
+- Keep the sample `.mpp` files as recurring compatibility tests.

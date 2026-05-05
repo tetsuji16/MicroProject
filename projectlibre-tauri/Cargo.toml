@@ -13,6 +13,7 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 projectlibre_tauri_backend = { path = "backend" }
 roxmltree = "0.20"
+base64 = "0.22"
 
 [build-dependencies]
 tauri-build = { version = "1" }
