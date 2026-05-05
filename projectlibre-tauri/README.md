@@ -4,9 +4,10 @@ This directory contains the Rust + Tauri application scaffold for MicroProject.
 
 ## What It Does Today
 
-- Stores workspace state locally as JSON.
-- Exposes Tauri commands for project, task, dependency, and calendar CRUD.
-- Keeps the frontend intentionally small while the domain model solidifies.
+- Stores workspace state locally as JSON through the Rust backend crate.
+- Exposes Tauri commands for project, task, dependency, resource, assignment, and calendar CRUD.
+- Supports XML import/export for workspace interchange.
+- Keeps the frontend simple, but it now supports create, edit, delete, import, export, and recalculation flows.
 
 ## Build
 
@@ -17,6 +18,6 @@ cargo run
 
 ## Notes
 
-- The frontend is still a placeholder and will be replaced by the real rewrite UI.
-- The data model is JSON-first so we can iterate quickly before moving to richer persistence.
+- The domain and persistence logic now lives in `backend/src/lib.rs`.
 - The Tauri config lives in `src-tauri/tauri.conf.json`.
+- The rewrite still has room to grow into richer ProjectLibre-compatible UI and file formats.

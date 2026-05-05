@@ -16,10 +16,11 @@
 ## Phase 3 - Persistence and Commands
 
 - Store workspace state locally in JSON first.
+- Move the core workspace model and store into the Rust backend crate.
 - Add XML interchange so the Rust backend can import/export workspace state in a portable format.
 - Expose Tauri commands for project/task/dependency/resource/assignment/calendar CRUD.
-- Add export/import and schedule-rebuild commands.
-- Add tests for delete cascades, load/save round trips, and schedule ordering.
+- Add export/import, edit, and schedule-rebuild commands.
+- Add tests for delete cascades, load/save round trips, XML round trips, and schedule ordering.
 - Implement a basic persistence layer in the backend and wire with simple tests.
 
 ## Phase 4 - Frontend
