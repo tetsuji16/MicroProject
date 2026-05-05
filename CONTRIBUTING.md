@@ -1,4 +1,5 @@
 Contributing
-- This project currently exists in planning and skeleton stages for two parallel tracks: GitHub mirror and Rust+TAURI port.
-- Before contributing, please read PLAN_CPAL_MIRROR_TAURI.md for licensing considerations and repository goals.
-- How to contribute: open issues, submit PRs to develop branch, follow PR guidelines to be added later.
+- This project currently exists in a bridge-first migration stage: Java ProjectLibre stays authoritative while Rust/Tauri becomes the host shell.
+- Before contributing, please read [JAVA_BRIDGE.md](./JAVA_BRIDGE.md), [ROADMAP.md](./ROADMAP.md), and [NOTICE](./NOTICE) for licensing and migration goals.
+- How to contribute: open issues, submit PRs to `main` or the active migration branch, and keep changes small enough to compare against the Java reference.
+- Prefer fixes that preserve MS Project compatibility, even if that means leaving a feature implemented in Java for one more slice.

@@ -7,526 +7,994 @@
     <style>
       :root {
         color-scheme: light;
-        --bg: #f4efe8;
-        --panel: #fffaf3;
-        --panel-2: #fff3e5;
-        --text: #1f1b16;
-        --muted: #6b5f55;
-        --accent: #b45309;
-        --accent-2: #f59e0b;
-        --line: rgba(31, 27, 22, 0.12);
-        --shadow: 0 24px 70px rgba(31, 27, 22, 0.08);
+        --bg: #dfe6ef;
+        --surface: #f7f9fc;
+        --surface-2: #edf2f8;
+        --surface-3: #d9e3ee;
+        --surface-4: #c7d3e3;
+        --text: #1d2937;
+        --muted: #58677a;
+        --line: #b9c6d6;
+        --accent: #3b6ea8;
+        --accent-2: #5e8fc5;
+        --accent-3: #1f4d7a;
+        --danger: #b0413e;
+        --shadow: 0 10px 28px rgba(29, 41, 55, 0.12);
+        --radius: 10px;
       }
 
       * {
         box-sizing: border-box;
       }
 
+      html,
+      body {
+        height: 100%;
+      }
+
       body {
         margin: 0;
-        min-height: 100vh;
-        font-family: Georgia, "Times New Roman", serif;
+        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
         color: var(--text);
         background:
-          radial-gradient(circle at top left, rgba(180, 83, 9, 0.16), transparent 32%),
-          radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.12), transparent 28%),
-          linear-gradient(135deg, #fcf7f0 0%, var(--bg) 100%);
+          linear-gradient(180deg, #eaf0f7 0%, var(--bg) 100%);
       }
 
-      main {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 28px;
-      }
-
-      .shell {
-        background: rgba(255, 250, 243, 0.96);
-        border: 1px solid var(--line);
-        border-radius: 28px;
-        box-shadow: var(--shadow);
-        overflow: hidden;
-        backdrop-filter: blur(8px);
-      }
-
-      .hero {
-        padding: 32px 32px 24px;
-        border-bottom: 1px solid var(--line);
-        background: linear-gradient(180deg, rgba(245, 158, 11, 0.1), transparent);
-      }
-
-      .topline {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        flex-wrap: wrap;
-        justify-content: space-between;
-      }
-
-      h1 {
-        margin: 0;
-        font-size: clamp(2.2rem, 5vw, 4.4rem);
-        letter-spacing: -0.04em;
-      }
-
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 5px 12px;
-        border-radius: 999px;
-        background: rgba(180, 83, 9, 0.12);
-        color: var(--accent);
-        font-size: 0.85rem;
-        font-weight: 700;
-      }
-
-      .lead {
-        max-width: 70ch;
-        margin: 12px 0 0;
-        line-height: 1.65;
-        color: var(--muted);
-      }
-
-      .statusbar {
-        margin-top: 16px;
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: center;
-        color: var(--muted);
-        font-size: 0.95rem;
-      }
-
-      .dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 999px;
-        background: var(--accent-2);
-        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.14);
-      }
-
-      .layout {
-        display: grid;
-        grid-template-columns: 300px minmax(0, 1fr) 380px;
-        gap: 18px;
-        padding: 24px 28px 28px;
-      }
-
-      .panel {
-        border: 1px solid var(--line);
-        border-radius: 22px;
-        background: rgba(255, 255, 255, 0.65);
-        overflow: hidden;
-      }
-
-      .panel h2 {
-        margin: 0;
-        padding: 16px 18px;
-        font-size: 1.1rem;
-        border-bottom: 1px solid var(--line);
-        background: var(--panel-2);
-      }
-
-      .panel-body {
-        padding: 16px 18px 18px;
-      }
-
-      .stack {
-        display: grid;
-        gap: 12px;
-      }
-
-      label {
-        display: grid;
-        gap: 6px;
-        font-size: 0.9rem;
-        color: var(--muted);
-      }
-
+      button,
       input,
-      textarea,
       select,
-      button {
+      textarea {
         font: inherit;
       }
 
-      input,
-      textarea,
-      select {
-        width: 100%;
+      button {
         border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 10px 12px;
-        background: #fffdf9;
+        border-radius: 7px;
+        background: linear-gradient(180deg, #ffffff 0%, #eef3f8 100%);
+        color: var(--text);
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: #92a9c3;
+        background: linear-gradient(180deg, #ffffff 0%, #e8eef6 100%);
+      }
+
+      button.primary {
+        background: linear-gradient(180deg, #4f87c0 0%, var(--accent) 100%);
+        border-color: #2f5f93;
+        color: white;
+      }
+
+      button.primary:hover {
+        background: linear-gradient(180deg, #5c96d0 0%, #376798 100%);
+      }
+
+      button.ghost {
+        background: linear-gradient(180deg, #ffffff 0%, #f1f5fa 100%);
+      }
+
+      button.danger {
+        color: var(--danger);
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid #b8c5d6;
+        border-radius: 7px;
+        padding: 8px 10px;
+        background: white;
         color: var(--text);
       }
 
       textarea {
-        min-height: 86px;
         resize: vertical;
+        min-height: 70px;
       }
 
-      .row {
+      .app {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
+        grid-template-rows: 48px 88px minmax(0, 1fr) 28px;
+        height: 100%;
       }
 
-      .actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-
-      .primary,
-      .ghost,
-      .danger {
-        border: 0;
-        border-radius: 999px;
-        padding: 10px 14px;
-        cursor: pointer;
-        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-      }
-
-      .primary {
-        background: linear-gradient(135deg, var(--accent), #8f3b0b);
-        color: #fff;
-        box-shadow: 0 10px 24px rgba(180, 83, 9, 0.24);
-      }
-
-      .ghost {
-        background: rgba(255, 255, 255, 0.8);
-        color: var(--text);
-        border: 1px solid var(--line);
-      }
-
-      .danger {
-        background: rgba(185, 28, 28, 0.12);
-        color: #991b1b;
-      }
-
-      .primary:hover,
-      .ghost:hover,
-      .danger:hover {
-        transform: translateY(-1px);
-      }
-
-      .list {
+      .titlebar {
         display: grid;
-        gap: 10px;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: stretch;
+        background: linear-gradient(180deg, #2c5d8c 0%, #18466f 100%);
+        border-bottom: 1px solid #102f4a;
+        color: white;
       }
 
-      .item {
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.75);
-      }
-
-      .item-head {
+      .brand {
         display: flex;
-        align-items: start;
-        justify-content: space-between;
+        align-items: center;
         gap: 12px;
+        padding: 0 16px;
+        border-right: 1px solid rgba(255, 255, 255, 0.16);
       }
 
-      .item-title {
-        margin: 0;
-        font-size: 1rem;
+      .logo {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: #ffffff;
+      }
+
+      .subtitle {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.75);
+      }
+
+      .menu {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 0 12px;
+      }
+
+      .menu button {
+        border: 0;
+        background: transparent;
+        padding: 11px 9px 12px;
+        border-radius: 0;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .menu button.active,
+      .menu button:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .titlebar-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px 0 0;
+      }
+
+      .ribbon {
+        background: linear-gradient(180deg, #dfe9f4 0%, #cfdceb 100%);
+        border-bottom: 1px solid #9fb1c6;
+        padding: 8px 10px 9px;
+      }
+
+      .ribbon-groups {
+        display: flex;
+        gap: 12px;
+        overflow: auto;
+      }
+
+      .ribbon-group {
+        min-width: 170px;
+        border: 1px solid #b8c6d8;
+        border-radius: 4px;
+        background: linear-gradient(180deg, #fdfefe 0%, #eff4f9 100%);
+        padding: 10px;
+      }
+
+      .ribbon-group-title {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      .ribbon-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .workspace {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr) 320px;
+        gap: 1px;
+        min-width: 0;
+        background: #aebfd3;
+      }
+
+      .rail,
+      .inspector {
+        background: linear-gradient(180deg, #eef3f8 0%, #e6edf5 100%);
+        min-width: 0;
+      }
+
+      .inspector {
+        border-left: 1px solid #aebfd3;
+      }
+
+      .rail,
+      .canvas,
+      .inspector {
+        min-height: 0;
+      }
+
+      .rail-scroll,
+      .inspector-scroll {
+        height: 100%;
+        overflow: auto;
+        padding: 12px;
+      }
+
+      .rail-card,
+      .panel-card {
+        border: 1px solid #b8c6d8;
+        border-radius: 4px;
+        background: #ffffff;
+        box-shadow: 0 1px 1px rgba(33, 49, 65, 0.06);
+        margin-bottom: 12px;
+        overflow: hidden;
+      }
+
+      .rail-card header,
+      .panel-card header {
+        background: linear-gradient(180deg, #ffffff 0%, #edf2f8 100%);
+        border-bottom: 1px solid #c7d3e3;
+        padding: 10px 12px;
+        font-weight: 600;
+        color: #20364d;
+      }
+
+      .rail-card .body,
+      .panel-card .body {
+        padding: 12px;
+      }
+
+      .view-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .view-list button {
+        text-align: left;
+        padding: 9px 10px;
+        border-radius: 8px;
+      }
+
+      .view-list button.active {
+        background: linear-gradient(180deg, #edf5fd 0%, #d8e6f4 100%);
+        border-color: #99b4cf;
+        color: #153d63;
+      }
+
+      .project-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .project-card {
+        border: 1px solid #c3cfdd;
+        border-radius: 4px;
+        background: white;
+        padding: 10px;
+      }
+
+      .project-card.active {
+        border-color: #6690bc;
+        background: #edf4fb;
+      }
+
+      .project-card .name {
+        font-weight: 600;
+        margin: 0 0 4px;
       }
 
       .muted {
         color: var(--muted);
-        font-size: 0.92rem;
-        line-height: 1.5;
+      }
+
+      .small {
+        font-size: 12px;
+      }
+
+      .canvas {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        background: linear-gradient(180deg, #f6f9fd 0%, #edf3f9 100%);
+      }
+
+      .canvas-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px 10px;
+        border-bottom: 1px solid #c2cfdd;
+        background: linear-gradient(180deg, #ffffff 0%, #eef3f8 100%);
+      }
+
+      .canvas-head h1,
+      .canvas-head h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #20364d;
+      }
+
+      .canvas-head .subtitle {
+        margin-top: 4px;
+      }
+
+      .canvas-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .canvas-controls select {
+        width: auto;
+        min-width: 120px;
+      }
+
+      .canvas-body {
+        min-height: 0;
+        flex: 1;
+        overflow: auto;
+        padding: 12px 14px 14px;
+      }
+
+      .sheet-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.45fr;
+        min-width: 980px;
+        gap: 0;
+        border: 1px solid #9db0c5;
+        border-radius: 0;
+        overflow: hidden;
+        background: white;
+      }
+
+      .sheet,
+      .gantt {
+        min-width: 0;
+      }
+
+      .sheet {
+        border-right: 1px solid #9db0c5;
+        background: white;
+      }
+
+      .sheet-header,
+      .gantt-header {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: linear-gradient(180deg, #f8fbfe 0%, #e8eff7 100%);
+        border-bottom: 1px solid #c4d0dd;
+      }
+
+      .sheet-header table,
+      .sheet-body table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .sheet-header th,
+      .sheet-body td {
+        border-bottom: 1px solid #e0e7ef;
+        padding: 8px 8px;
+        text-align: left;
+        font-size: 11px;
+        vertical-align: top;
+        white-space: nowrap;
+      }
+
+      .sheet-header th {
+        color: #394a5d;
+        font-weight: 700;
+      }
+
+      .sheet-body tr.selected td,
+      .gantt-row.selected {
+        background: #dfeaf8;
+      }
+
+      .sheet-body tr.summary-row td {
+        background: #f2f6fb;
+        font-weight: 600;
+      }
+
+      .task-name {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .task-indent {
+        display: inline-block;
+        width: calc(var(--level, 1) * 14px);
+        flex: 0 0 auto;
+      }
+
+      .task-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: #e5eef8;
+        color: #204164;
+        font-size: 11px;
+      }
+
+      .gantt {
+        min-width: 0;
+        background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+      }
+
+      .gantt-header-grid {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: var(--unit-width);
+        min-width: max-content;
+      }
+
+      .gantt-header-grid .cell {
+        padding: 8px 8px;
+        border-right: 1px solid #dce5ee;
+        border-bottom: 1px solid #c4d0dd;
+        font-size: 11px;
+        color: #415368;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .gantt-body {
+        position: relative;
+        min-height: 250px;
+      }
+
+      .gantt-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        position: relative;
+        min-width: max-content;
+        border-bottom: 1px solid #edf2f7;
+      }
+
+      .gantt-row-bg {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(to right, rgba(200, 212, 226, 0.45) 1px, transparent 1px);
+        background-size: var(--unit-width) 100%;
+        pointer-events: none;
+      }
+
+      .gantt-row-content {
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: 34px;
+      }
+
+      .gantt-bar {
+        position: absolute;
+        top: 8px;
+        height: 16px;
+        border-radius: 2px;
+        background: linear-gradient(180deg, #5f96cf 0%, #386b9f 100%);
+        border: 1px solid #2f5f93;
+        box-shadow: 0 1px 2px rgba(30, 50, 74, 0.15);
+        color: white;
+        overflow: hidden;
+      }
+
+      .gantt-bar.summary {
+        height: 12px;
+        top: 10px;
+        background: linear-gradient(180deg, #476d93 0%, #2d4f72 100%);
+      }
+
+      .gantt-bar .progress {
+        position: absolute;
+        inset: 0 auto 0 0;
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .gantt-bar .label {
+        position: relative;
+        z-index: 1;
+        padding: 0 6px;
+        font-size: 11px;
+        line-height: 16px;
+        white-space: nowrap;
+      }
+
+      .gantt-lines {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .inspector-form {
+        display: grid;
+        gap: 10px;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .field-grid.single {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .section-title h3 {
+        margin: 0;
+        font-size: 14px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .summary-box {
+        background: linear-gradient(180deg, #ffffff 0%, #eef4fb 100%);
+        border: 1px solid #c5d1de;
+        border-radius: 8px;
+        padding: 10px;
+      }
+
+      .summary-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
+        padding: 3px 0;
+        border-bottom: 1px solid #e6edf4;
+      }
+
+      .summary-line:last-child {
+        border-bottom: 0;
+      }
+
+      .mini-note {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .statusbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 12px;
+        background: linear-gradient(180deg, #d3deeb 0%, #c1cfdf 100%);
+        border-top: 1px solid #aebfd3;
+        font-size: 12px;
+        color: #23374c;
       }
 
       .pill {
         display: inline-flex;
         align-items: center;
-        padding: 3px 8px;
+        padding: 4px 8px;
         border-radius: 999px;
-        background: rgba(180, 83, 9, 0.12);
-        color: var(--accent);
-        font-size: 0.8rem;
+        border: 1px solid #b8c5d6;
+        background: linear-gradient(180deg, #ffffff 0%, #eff4fa 100%);
+        color: #20364d;
       }
 
-      .table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-
-      .table th,
-      .table td {
-        text-align: left;
-        padding: 8px 6px;
-        border-bottom: 1px solid var(--line);
-        font-size: 0.92rem;
-        vertical-align: top;
-      }
-
-      .table th {
-        color: var(--muted);
-        font-weight: 600;
-      }
-
-      pre {
-        margin: 0;
-        padding: 12px;
-        border-radius: 18px;
-        background: #181411;
-        color: #f5efe7;
-        overflow: auto;
-        max-height: 360px;
-        font-size: 0.82rem;
-      }
-
-      .error {
-        color: #991b1b;
-        font-weight: 700;
-      }
-
-      .selected {
-        outline: 2px solid rgba(180, 83, 9, 0.34);
-        box-shadow: 0 0 0 4px rgba(180, 83, 9, 0.08);
-      }
-
-      .small {
-        font-size: 0.82rem;
+      .hidden {
+        display: none !important;
       }
 
       @media (max-width: 1200px) {
-        .layout {
-          grid-template-columns: 1fr;
+        .workspace {
+          grid-template-columns: 210px minmax(0, 1fr);
+        }
+
+        .inspector {
+          display: none;
         }
       }
 
-      @media (max-width: 720px) {
-        main {
-          padding: 12px;
-        }
-
-        .hero,
-        .layout {
-          padding-left: 16px;
-          padding-right: 16px;
-        }
-
-        .row {
+      @media (max-width: 900px) {
+        .workspace {
           grid-template-columns: 1fr;
+        }
+
+        .rail {
+          border-right: 0;
+          border-bottom: 1px solid #b8c5d6;
+        }
+
+        .sheet-grid {
+          min-width: 900px;
         }
       }
     </style>
   </head>
   <body>
-    <main>
-      <section class="shell">
-        <div class="hero">
-          <div class="topline">
-            <div>
-              <span class="badge">MicroProject rewrite scaffold</span>
-              <h1>ProjectLibre, rebuilt in Rust and Tauri.</h1>
-            </div>
-            <button class="ghost" id="refreshBtn" type="button">Refresh</button>
-          </div>
-          <p class="lead">
-            This view talks directly to the Rust backend. It is intentionally simple for now, but it already supports
-            project, task, dependency, and calendar CRUD so we can evolve the rewrite in small vertical slices.
-          </p>
-          <div class="statusbar">
-            <span class="dot"></span>
-            <span id="statusText">Loading workspace...</span>
+    <div class="app">
+      <header class="titlebar">
+        <div class="brand">
+          <img src="./projectlibre.png" alt="ProjectLibre" style="width:144px; height:31px; object-fit:contain" />
+          <div>
+            <div class="logo">MicroProject</div>
+            <div class="subtitle">ProjectLibre-compatible Rust/Tauri rewrite</div>
           </div>
         </div>
-
-        <div class="layout">
-          <section class="panel">
-            <h2>Projects</h2>
-            <div class="panel-body stack">
-              <form id="projectForm" class="stack">
-                <label>
-                  Name
-                  <input id="projectName" placeholder="Launch website" required />
-                </label>
-                <label>
-                  Description
-                  <textarea id="projectDescription" placeholder="Project summary"></textarea>
-                </label>
-                <div class="row">
-                  <label>
-                    Start
-                    <input id="projectStart" type="date" />
-                  </label>
-                  <label>
-                    Finish
-                    <input id="projectFinish" type="date" />
-                  </label>
-                </div>
-                <button class="primary" type="submit">Add Project</button>
-              </form>
-              <div id="projectList" class="list"></div>
-            </div>
-          </section>
-
-          <section class="panel">
-            <h2>Tasks & Dependencies</h2>
-            <div class="panel-body stack">
-              <div>
-                <div class="actions">
-                  <span class="pill" id="selectedProjectPill">No project selected</span>
-                  <span class="pill" id="countsPill">0 tasks · 0 dependencies</span>
-                </div>
-                <p class="muted small">
-                  Choose a project on the left. The task and dependency forms below will target that project.
-                </p>
-              </div>
-
-              <form id="taskForm" class="stack">
-                <label>
-                  Task name
-                  <input id="taskName" placeholder="Define milestones" required />
-                </label>
-                <div class="row">
-                  <label>
-                    Start
-                    <input id="taskStart" type="date" />
-                  </label>
-                  <label>
-                    Finish
-                    <input id="taskFinish" type="date" />
-                  </label>
-                </div>
-                <div class="row">
-                  <label>
-                    Percent complete
-                    <input id="taskPercent" type="number" min="0" max="100" step="1" value="0" />
-                  </label>
-                  <label>
-                    Sort order
-                    <input id="taskSortOrder" type="number" step="1" value="0" />
-                  </label>
-                </div>
-                <button class="primary" type="submit">Add Task</button>
-              </form>
-
-              <form id="dependencyForm" class="stack">
-                <div class="row">
-                  <label>
-                    Predecessor
-                    <select id="dependencyPredecessor"></select>
-                  </label>
-                  <label>
-                    Successor
-                    <select id="dependencySuccessor"></select>
-                  </label>
-                </div>
-                <button class="primary" type="submit">Add Dependency</button>
-              </form>
-
-              <section>
-                <h3 class="item-title">Tasks</h3>
-                <div id="taskList" class="list"></div>
-              </section>
-
-              <section>
-                <h3 class="item-title">Dependencies</h3>
-                <div id="dependencyList" class="list"></div>
-              </section>
-            </div>
-          </section>
-
-          <section class="panel">
-            <h2>Snapshot</h2>
-            <div class="panel-body stack">
-              <form id="calendarForm" class="stack">
-                <label>
-                  Calendar name
-                  <input id="calendarName" placeholder="Standard" required />
-                </label>
-                <label>
-                  Timezone
-                  <input id="calendarTimezone" placeholder="Asia/Tokyo" />
-                </label>
-                <button class="primary" type="submit">Add Calendar</button>
-              </form>
-              <form id="resourceForm" class="stack">
-                <label>
-                  Resource name
-                  <input id="resourceName" placeholder="Alice" required />
-                </label>
-                <div class="row">
-                  <label>
-                    Type
-                    <select id="resourceType">
-                      <option value="work">Work</option>
-                      <option value="material">Material</option>
-                      <option value="cost">Cost</option>
-                    </select>
-                  </label>
-                  <label>
-                    Max units
-                    <input id="resourceUnits" type="number" min="0" max="1000" step="1" value="100" />
-                  </label>
-                </div>
-                <div class="row">
-                  <label>
-                    Standard rate
-                    <input id="resourceRate" type="number" min="0" step="0.01" value="0" />
-                  </label>
-                  <label>
-                    Cost per use
-                    <input id="resourceCost" type="number" min="0" step="0.01" value="0" />
-                  </label>
-                </div>
-                <button class="primary" type="submit">Add Resource</button>
-              </form>
-              <form id="assignmentForm" class="stack">
-                <div class="row">
-                  <label>
-                    Task
-                    <select id="assignmentTask"></select>
-                  </label>
-                  <label>
-                    Resource
-                    <select id="assignmentResource"></select>
-                  </label>
-                </div>
-                <div class="row">
-                  <label>
-                    Units
-                    <input id="assignmentUnits" type="number" min="0" max="1000" step="1" value="100" />
-                  </label>
-                  <label>
-                    Work hours
-                    <input id="assignmentWork" type="number" min="0" step="0.5" value="0" />
-                  </label>
-                </div>
-                <button class="primary" type="submit">Add Assignment</button>
-              </form>
-              <div class="actions">
-                <button class="ghost" id="recalcBtn" type="button">Recalculate</button>
-                <button class="ghost" id="exportBtn" type="button">Export JSON</button>
-                <button class="ghost" id="exportXmlBtn" type="button">Export XML</button>
-                <button class="ghost" id="importBtn" type="button">Import JSON</button>
-                <button class="ghost" id="importXmlBtn" type="button">Import XML</button>
-              </div>
-              <section>
-                <h3 class="item-title">Calendars</h3>
-                <div id="calendarList" class="list"></div>
-              </section>
-              <section>
-                <h3 class="item-title">Resources</h3>
-                <div id="resourceList" class="list"></div>
-              </section>
-              <section>
-                <h3 class="item-title">Assignments</h3>
-                <div id="assignmentList" class="list"></div>
-              </section>
-              <pre id="snapshotView">{}</pre>
-            </div>
-          </section>
+        <nav class="menu" id="menuTabs"></nav>
+        <div class="titlebar-tools">
+          <button class="ghost" id="refreshBtn" type="button">Refresh</button>
+          <span class="pill" id="connectionPill">Connecting...</span>
         </div>
+      </header>
+
+      <section class="ribbon">
+        <div class="ribbon-groups" id="ribbonGroups"></div>
       </section>
-    </main>
+
+      <section class="workspace">
+        <aside class="rail">
+          <div class="rail-scroll">
+            <div class="rail-card">
+              <header>Task / Resource Views</header>
+              <div class="body">
+                <div class="view-list" id="viewButtons"></div>
+              </div>
+            </div>
+
+            <div class="rail-card">
+              <header>Java Bridge</header>
+              <div class="body">
+                <div class="stack" style="gap:8px">
+                  <span class="pill" id="bridgePill">Bridge idle</span>
+                  <div class="mini-note" id="bridgeSummary">Java bridge has not been started yet.</div>
+                  <select id="bridgeSampleSelect"></select>
+                  <div class="field-grid">
+                    <button class="primary" id="bridgePingBtn" type="button">Ping Java</button>
+                    <button class="ghost" id="bridgeSnapshotBtn" type="button">Bridge Snapshot</button>
+                  </div>
+                  <div class="field-grid">
+                    <button class="ghost" id="bridgeOpenBtn" type="button">Open Sample</button>
+                    <button class="ghost" id="bridgeImportBtn" type="button">Import Sample</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rail-card">
+              <header>Projects</header>
+              <div class="body">
+                <div class="project-list" id="projectList"></div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <main class="canvas">
+          <div class="canvas-head">
+            <div>
+              <h1 id="screenTitle">Gantt Chart</h1>
+              <div class="subtitle" id="screenSubtitle">Open a project to manage tasks, dependencies, and schedule.</div>
+            </div>
+            <div class="canvas-controls">
+              <span class="pill" id="selectedProjectPill">No project selected</span>
+              <span class="pill" id="countsPill">0 tasks</span>
+              <select id="zoomSelect">
+                <option value="day">Day</option>
+                <option value="week" selected>Week</option>
+                <option value="month">Month</option>
+                <option value="quarter">Quarter</option>
+              </select>
+              <select id="filterSelect">
+                <option value="all">All Tasks</option>
+                <option value="critical">Critical-ish</option>
+                <option value="milestone">Milestones</option>
+                <option value="unassigned">Unassigned</option>
+              </select>
+              <select id="sortSelect">
+                <option value="wbs">Sort by WBS</option>
+                <option value="start">Sort by Start</option>
+                <option value="finish">Sort by Finish</option>
+                <option value="name">Sort by Name</option>
+              </select>
+            </div>
+          </div>
+          <div class="canvas-body" id="canvasBody"></div>
+        </main>
+
+        <aside class="inspector">
+          <div class="inspector-scroll">
+            <div class="panel-card">
+              <header>Inspector</header>
+              <div class="body">
+                <div class="stack">
+                  <div class="summary-box" id="selectionSummary"></div>
+                  <div class="section-title">
+                    <h3>Project Information</h3>
+                    <button class="ghost" id="newProjectBtn" type="button">New Project</button>
+                  </div>
+                  <form id="projectForm" class="inspector-form">
+                    <div class="field-grid single">
+                      <label>
+                        Name
+                        <input id="projectName" required />
+                      </label>
+                    </div>
+                    <div class="field-grid single">
+                      <label>
+                        Description
+                        <textarea id="projectDescription"></textarea>
+                      </label>
+                    </div>
+                    <div class="field-grid">
+                      <label>
+                        Start
+                        <input id="projectStart" type="date" />
+                      </label>
+                      <label>
+                        Finish
+                        <input id="projectFinish" type="date" />
+                      </label>
+                    </div>
+                    <div class="field-grid">
+                      <label>
+                        Status
+                        <select id="projectStatus">
+                          <option value="planning">Planning</option>
+                          <option value="active">Active</option>
+                          <option value="on-hold">On Hold</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </label>
+                      <label>
+                        Priority
+                        <input id="projectPriority" type="number" step="1" value="500" />
+                      </label>
+                    </div>
+                    <div class="field-grid single">
+                      <label>
+                        Notes
+                        <textarea id="projectNotes"></textarea>
+                      </label>
+                    </div>
+                    <div class="field-grid">
+                      <button class="primary" type="submit">Save Project</button>
+                      <button class="danger" id="deleteProjectBtn" type="button">Delete Project</button>
+                    </div>
+                  </form>
+
+                  <div class="section-title" style="margin-top: 8px">
+                    <h3>Task Information</h3>
+                    <button class="ghost" id="newTaskBtn" type="button">New Task</button>
+                  </div>
+                  <form id="taskForm" class="inspector-form">
+                    <div class="field-grid single">
+                      <label>
+                        Task Name
+                        <input id="taskName" required />
+                      </label>
+                    </div>
+                    <div class="field-grid">
+                      <label>
+                        Start
+                        <input id="taskStart" type="date" />
+                      </label>
+                      <label>
+                        Finish
+                        <input id="taskFinish" type="date" />
+                      </label>
+                    </div>
+                    <div class="field-grid">
+                      <label>
+                        Duration Hours
+                        <input id="taskDuration" type="number" min="0" step="0.5" value="8" />
+                      </label>
+                      <label>
+                        % Complete
+                        <input id="taskPercent" type="number" min="0" max="100" step="1" value="0" />
+                      </label>
+                    </div>
+                    <div class="field-grid">
+                      <label>
+                        Parent Task
+                        <select id="taskParent"></select>
+                      </label>
+                      <label>
+                        Sort Order
+                        <input id="taskSortOrder" type="number" step="1" value="0" />
+                      </label>
+                    </div>
+                    <div class="field-grid">
+                      <label>
+                        Calendar
+                        <select id="taskCalendar"></select>
+                      </label>
+                      <label>
+                        Constraint
+                        <select id="taskConstraint">
+                          <option value="ASAP">ASAP</option>
+                          <option value="ALAP">ALAP</option>
+                          <option value="MSO">MSO</option>
+                          <option value="MFO">MFO</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="field-grid single">
+                      <label>
+                        Notes
+                        <textarea id="taskNotes"></textarea>
+                      </label>
+                    </div>
+                    <div class="field-grid">
+                      <button class="primary" type="submit">Save Task</button>
+                      <button class="danger" id="deleteTaskBtn" type="button">Delete Task</button>
+                    </div>
+                  </form>
+
+                  <div class="section-title" style="margin-top: 8px">
+                    <h3>Dependencies</h3>
+                    <button class="ghost" id="newDependencyBtn" type="button">New Link</button>
+                  </div>
+                  <form id="dependencyForm" class="inspector-form">
+                    <div class="field-grid">
+                      <label>
+                        Predecessor
+                        <select id="dependencyPredecessor"></select>
+                      </label>
+                      <label>
+                        Successor
+                        <select id="dependencySuccessor"></select>
+                      </label>
+                    </div>
+                    <div class="field-grid">
+                      <label>
+                        Relation
+                        <select id="dependencyRelation">
+                          <option value="FS">Finish to Start</option>
+                          <option value="SS">Start to Start</option>
+                          <option value="FF">Finish to Finish</option>
+                          <option value="SF">Start to Finish</option>
+                        </select>
+                      </label>
+                      <label>
+                        Lag Hours
+                        <input id="dependencyLag" type="number" step="0.5" value="0" />
+                      </label>
+                    </div>
+                    <div class="field-grid">
+                      <button class="primary" type="submit">Save Link</button>
+                      <button class="danger" id="deleteDependencyBtn" type="button">Delete Link</button>
+                    </div>
+                  </form>
+
+                  <details class="panel-card" open>
+                    <summary class="body" style="cursor:pointer; list-style:none; font-weight:600">Resources</summary>
+                    <div class="body stack">
+                      <form id="resourceForm" class="inspector-form">
+                        <div class="field-grid single">
+                          <label>
+                            Resource Name
+                            <input id="resourceName" required />
+                          </label>
+                        </div>
+                        <div class="field-grid">
+                          <label>
+                            Type
+                            <select id="resourceType">
+                              <option value="work">Work</option>
+                              <option value="material">Material</option>
+                              <option value="cost">Cost</option>
+                            </select>
+                          </label>
+                          <label>
+                            Max Units
+                            <input id="resourceUnits" type="number" min="0" max="1000" step="1" value="100" />
+                          </label>
+                        </div>
+                        <div class="field-grid">
+                          <label>
+                            Standard Rate
+                            <input id="resourceRate" type="number" min="0" step="0.01" value="0" />
+                          </label>
+                          <label>
+                            Cost Per Use
+                            <input id="resourceCost" type="number" min="0" step="0.01" value="0" />
+                          </label>
+                        </div>
+                        <div class="field-grid">
+                          <button class="primary" type="submit">Save Resource</button>
+                          <button class="danger" id="deleteResourceBtn" type="button">Delete Resource</button>
+                        </div>
+                      </form>
+
+                      <form id="assignmentForm" class="inspector-form">
+                        <div class="field-grid">
+                          <label>
+                            Task
+                            <select id="assignmentTask"></select>
+                          </label>
+                          <label>
+                            Resource
+                            <select id="assignmentResource"></select>
+                          </label>
+                        </div>
+                        <div class="field-grid">
+                          <label>
+                            Units
+                            <input id="assignmentUnits" type="number" min="0" max="1000" step="1" value="100" />
+                          </label>
+                          <label>
+                            Work Hours
+                            <input id="assignmentWork" type="number" min="0" step="0.5" value="0" />
+                          </label>
+                        </div>
+                        <div class="field-grid">
+                          <button class="primary" type="submit">Save Assignment</button>
+                          <button class="danger" id="deleteAssignmentBtn" type="button">Delete Assignment</button>
+                        </div>
+                      </form>
+                    </div>
+                  </details>
+
+                  <details class="panel-card">
+                    <summary class="body" style="cursor:pointer; list-style:none; font-weight:600">Calendars</summary>
+                    <div class="body stack">
+                      <form id="calendarForm" class="inspector-form">
+                        <div class="field-grid single">
+                          <label>
+                            Calendar Name
+                            <input id="calendarName" required />
+                          </label>
+                        </div>
+                        <div class="field-grid">
+                          <label>
+                            Timezone
+                            <input id="calendarTimezone" placeholder="Asia/Tokyo" />
+                          </label>
+                          <label>
+                            Hours / Day
+                            <input id="calendarHours" type="number" min="1" step="0.5" value="8" />
+                          </label>
+                        </div>
+                        <div class="field-grid">
+                          <button class="primary" type="submit">Save Calendar</button>
+                          <button class="danger" id="deleteCalendarBtn" type="button">Delete Calendar</button>
+                        </div>
+                      </form>
+                    </div>
+                  </details>
+
+                  <div class="field-grid">
+                    <button class="primary" id="recalcBtn" type="button">Recalculate</button>
+                    <button class="ghost" id="baselineBtn" type="button">Capture Baseline</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <footer class="statusbar">
+        <span id="statusText">Loading workspace...</span>
+        <span id="footerStats">0 tasks · 0 dependencies · 0 resources</span>
+      </footer>
+    </div>
 
     <script>
       const tauri = window.__TAURI__ && window.__TAURI__.tauri;
@@ -536,87 +1004,539 @@
 
       const state = {
         snapshot: null,
+        bridge: null,
+        bridgeError: null,
+        status: "Loading workspace...",
         selectedProjectId: null,
+        selectedTaskId: null,
+        selectedDependencyId: null,
+        selectedResourceId: null,
+        selectedCalendarId: null,
+        selectedAssignmentId: null,
         editingProjectId: null,
         editingTaskId: null,
-        status: "Loading workspace..."
+        activeTab: "File",
+        activeView: "gantt",
+        zoom: "week",
+        filter: "all",
+        sort: "wbs",
       };
 
       const $ = (id) => document.getElementById(id);
 
+      const ribbonTabs = ["File", "Task", "Resource", "View"];
+      const viewModes = [
+        { id: "gantt", label: "Gantt" },
+        { id: "tracking", label: "Tracking Gantt" },
+        { id: "taskUsageDetail", label: "Task Usage Detail" },
+        { id: "resourceUsageDetail", label: "Resource Usage Detail" },
+        { id: "network", label: "Network" },
+        { id: "wbs", label: "WBS" },
+        { id: "rbs", label: "RBS" },
+        { id: "resources", label: "Resources" },
+        { id: "projects", label: "Projects" },
+        { id: "taskUsage", label: "Task Usage" },
+        { id: "resourceUsage", label: "Resource Usage" },
+      ];
+
+      const ribbonActions = {
+        File: [
+          {
+            title: "File",
+            buttons: [
+              { label: "New", action: () => startNewProject() },
+              { label: "Open", action: () => openBridgeSample() },
+              { label: "Import MS Project", action: () => importBridgeSample() },
+              { label: "Export MS Project", action: () => {
+                const target = window.prompt("Export MPP to path:", "C:/Users/tetsu/Desktop/microproject-export.mpp");
+                return target ? invoke("java_bridge_export_mpp", { path: target }).then(() => {
+                  state.status = `Java bridge exported sample to ${target}`;
+                  render();
+                }) : Promise.resolve();
+              } },
+              { label: "Save", action: () => $("projectForm").requestSubmit() },
+              { label: "Close", action: () => notify("Close project will follow the current document model.") },
+              { label: "Print", action: () => notify("Print output will mirror the ProjectLibre report views.") },
+              { label: "Print Preview", action: () => notify("Print preview is pending.") },
+              { label: "PDF", action: () => notify("PDF export is pending.") },
+              { label: "Project Information", action: () => $("projectForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Change Working Time", action: () => $("calendarForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Update Project", action: () => recalculateWorkspace() },
+              { label: "Options", action: () => notify("Project options will follow the ProjectLibre dialog model.") },
+              { label: "Refresh", action: () => refresh() },
+            ],
+          },
+        ],
+        Task: [
+          {
+            title: "Task",
+            buttons: [
+              { label: "Insert Task", action: () => startNewTask() },
+              { label: "Insert Recurring", action: () => notify("Recurring task creation will follow the source implementation.") },
+              { label: "Delete", action: () => deleteSelectedTask() },
+              { label: "Link", action: () => $("dependencyForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Unlink", action: () => deleteSelectedDependency() },
+              { label: "Split", action: () => notify("Split task is a planned schedule edit action.") },
+              { label: "Indent", action: () => notify("Indent will be wired to hierarchy editing.") },
+              { label: "Outdent", action: () => notify("Outdent will be wired to hierarchy editing.") },
+              { label: "Expand", action: () => notify("Expand all/selected will be added with tree controls.") },
+              { label: "Collapse", action: () => notify("Collapse all/selected will be added with tree controls.") },
+              { label: "Scroll to Task", action: () => notify("Scroll to task will center the selection in the chart.") },
+              { label: "Information", action: () => $("taskForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Notes", action: () => $("taskNotes").focus() },
+              { label: "Assign Resources", action: () => $("assignmentForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Delegate Tasks", action: () => notify("Delegate tasks is a future workflow action.") },
+              { label: "Update Tasks", action: () => recalculateWorkspace() },
+              { label: "Recalculate", action: () => recalculateWorkspace() },
+            ],
+          },
+          {
+            title: "Structure",
+            buttons: [
+              { label: "Milestone", action: () => toggleSelectedTaskMilestone() },
+              { label: "Task Usage Detail", action: () => switchView("taskUsageDetail") },
+              { label: "Network", action: () => switchView("network") },
+              { label: "WBS", action: () => switchView("wbs") },
+            ],
+          },
+        ],
+        Resource: [
+          {
+            title: "Resources",
+            buttons: [
+              { label: "Insert Resource", action: () => $("resourceForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Resources", action: () => switchView("resources") },
+              { label: "RBS", action: () => switchView("rbs") },
+              { label: "Resource Usage Detail", action: () => switchView("resourceUsageDetail") },
+              { label: "Resource Usage", action: () => switchView("resourceUsage") },
+              { label: "New Assignment", action: () => $("assignmentForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Delete Resource", action: () => deleteSelectedResource() },
+            ],
+          },
+          {
+            title: "Planning",
+            buttons: [
+              { label: "Capture Baseline", action: () => captureBaseline() },
+              { label: "Level Resources", action: () => notify("Resource leveling will follow the source algorithm.") },
+              { label: "Change Working Time", action: () => $("calendarForm").scrollIntoView({ behavior: "smooth" }) },
+              { label: "Project Information", action: () => $("projectForm").scrollIntoView({ behavior: "smooth" }) },
+            ],
+          },
+        ],
+        View: [
+          {
+            title: "Task Views",
+            buttons: [
+              { label: "Gantt", action: () => switchView("gantt") },
+              { label: "Tracking Gantt", action: () => switchView("tracking") },
+              { label: "Task Usage Detail", action: () => switchView("taskUsageDetail") },
+              { label: "Network", action: () => switchView("network") },
+              { label: "WBS", action: () => switchView("wbs") },
+            ],
+          },
+          {
+            title: "Resource Views",
+            buttons: [
+              { label: "Resource Usage Detail", action: () => switchView("resourceUsageDetail") },
+              { label: "Resources", action: () => switchView("resources") },
+              { label: "RBS", action: () => switchView("rbs") },
+              { label: "Resource Usage", action: () => switchView("resourceUsage") },
+              { label: "Projects", action: () => switchView("projects") },
+            ],
+          },
+          {
+            title: "Sub-Views",
+            buttons: [
+              { label: "Histogram", action: () => switchView("histogram") },
+              { label: "Charts", action: () => switchView("charts") },
+              { label: "No Sub Window", action: () => switchView("gantt") },
+            ],
+          },
+          {
+            title: "Filters / Sort / Group",
+            buttons: [
+              { label: "Choose Filter", action: () => $("filterSelect").focus() },
+              { label: "Choose Sort", action: () => $("sortSelect").focus() },
+              { label: "Choose Group", action: () => notify("Grouping controls are being mapped to the ProjectLibre transformers.") },
+              { label: "Zoom In", action: () => setZoom(zoomStep(+1)) },
+              { label: "Zoom Out", action: () => setZoom(zoomStep(-1)) },
+            ],
+          },
+        ],
+      };
+
+      function notify(message) {
+        state.status = message;
+        renderStatus();
+      }
+
+      function parseDate(value) {
+        if (!value) return null;
+        const date = new Date(`${value}T12:00:00`);
+        return Number.isNaN(date.getTime()) ? null : date;
+      }
+
       function formatDate(value) {
-        if (!value) return "unspecified";
+        if (!value) return "—";
         return value;
       }
 
-      function pickFirstProjectId(snapshot) {
-        return snapshot.projects[0] ? snapshot.projects[0].id : null;
+      function formatDateLong(date) {
+        if (!date) return "";
+        return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(date);
       }
 
-      function projectOfTask(task) {
-        return state.snapshot.projects.find((project) => project.id === task.project_id);
+      function addDays(date, days) {
+        const next = new Date(date);
+        next.setDate(next.getDate() + days);
+        return next;
+      }
+
+      function addMonths(date, months) {
+        const next = new Date(date);
+        next.setMonth(next.getMonth() + months);
+        return next;
+      }
+
+      function startOfWeek(date) {
+        const next = new Date(date);
+        const day = next.getDay() || 7;
+        next.setDate(next.getDate() - (day - 1));
+        return next;
+      }
+
+      function startOfMonth(date) {
+        return new Date(date.getFullYear(), date.getMonth(), 1, 12, 0, 0, 0);
+      }
+
+      function startOfQuarter(date) {
+        const quarterMonth = Math.floor(date.getMonth() / 3) * 3;
+        return new Date(date.getFullYear(), quarterMonth, 1, 12, 0, 0, 0);
+      }
+
+      function sameDate(left, right) {
+        return left && right && formatIso(left) === formatIso(right);
+      }
+
+      function formatIso(date) {
+        return date.toISOString().slice(0, 10);
+      }
+
+      function zoomStep(delta) {
+        const order = ["day", "week", "month", "quarter"];
+        const index = Math.max(0, Math.min(order.length - 1, order.indexOf(state.zoom) + delta));
+        return order[index];
+      }
+
+      function projectTasks(projectId) {
+        return state.snapshot.tasks.filter((task) => task.project_id === projectId);
+      }
+
+      function projectDependencies(projectId) {
+        return state.snapshot.dependencies.filter((dependency) => dependency.project_id === projectId);
+      }
+
+      function projectResources(projectId) {
+        return state.snapshot.resources.filter((resource) => resource.project_id === projectId);
+      }
+
+      function projectAssignments(projectId) {
+        return state.snapshot.assignments.filter((assignment) => assignment.project_id === projectId);
+      }
+
+      function projectCalendars(projectId) {
+        return state.snapshot.calendars.filter((calendar) => calendar.project_id === projectId);
+      }
+
+      function taskAssignments(projectId, taskId) {
+        return projectAssignments(projectId).filter((assignment) => assignment.task_id === taskId);
+      }
+
+      function taskPredecessors(projectId, taskId) {
+        return projectDependencies(projectId)
+          .filter((dependency) => dependency.successor_task_id === taskId)
+          .map((dependency) => {
+            const predecessor = state.snapshot.tasks.find((task) => task.id === dependency.predecessor_task_id);
+            return `${predecessor ? predecessor.wbs || predecessor.name : dependency.predecessor_task_id} (${dependency.relation || "FS"})`;
+          });
+      }
+
+      function taskResourceNames(projectId, taskId) {
+        return taskAssignments(projectId, taskId)
+          .map((assignment) => {
+            const resource = state.snapshot.resources.find((item) => item.id === assignment.resource_id);
+            return resource ? resource.name : assignment.resource_id;
+          })
+          .filter(Boolean);
       }
 
       function selectedProject() {
         return state.snapshot.projects.find((project) => project.id === state.selectedProjectId) || null;
       }
 
-      function filteredTasks() {
-        if (!state.selectedProjectId) return [];
-        return state.snapshot.tasks.filter((task) => task.project_id === state.selectedProjectId);
+      function selectedTask() {
+        return state.snapshot.tasks.find((task) => task.id === state.selectedTaskId) || null;
       }
 
-      function tasksForProject(projectId) {
-        return state.snapshot.tasks.filter((task) => task.project_id === projectId);
+      function selectedResource() {
+        return state.snapshot.resources.find((resource) => resource.id === state.selectedResourceId) || null;
       }
 
-      function dependenciesForProject(projectId) {
-        return state.snapshot.dependencies.filter((dependency) => dependency.project_id === projectId);
+      function selectedCalendar() {
+        return state.snapshot.calendars.find((calendar) => calendar.id === state.selectedCalendarId) || null;
       }
 
-      function filteredDependencies() {
-        const tasks = new Set(filteredTasks().map((task) => task.id));
-        return state.snapshot.dependencies.filter(
-          (dependency) =>
-            dependency.project_id === state.selectedProjectId &&
-            tasks.has(dependency.predecessor_task_id) &&
-            tasks.has(dependency.successor_task_id)
-        );
+      function selectedDependency() {
+        return state.snapshot.dependencies.find((dependency) => dependency.id === state.selectedDependencyId) || null;
       }
 
-      function resourcesForProject(projectId) {
-        return state.snapshot.resources.filter((resource) => resource.project_id === projectId);
+      function sortTasks(tasks) {
+        const list = [...tasks];
+        switch (state.sort) {
+          case "start":
+            return list.sort((left, right) => compareDate(left.start_date, right.start_date) || compareWbs(left.wbs, right.wbs) || left.name.localeCompare(right.name));
+          case "finish":
+            return list.sort((left, right) => compareDate(left.finish_date, right.finish_date) || compareWbs(left.wbs, right.wbs) || left.name.localeCompare(right.name));
+          case "name":
+            return list.sort((left, right) => left.name.localeCompare(right.name) || compareWbs(left.wbs, right.wbs));
+          case "wbs":
+          default:
+            return list.sort((left, right) => compareWbs(left.wbs, right.wbs) || left.name.localeCompare(right.name));
+        }
       }
 
-      function assignmentsForProject(projectId) {
-        return state.snapshot.assignments.filter((assignment) => assignment.project_id === projectId);
+      function compareDate(left, right) {
+        const leftDate = parseDate(left);
+        const rightDate = parseDate(right);
+        if (!leftDate && !rightDate) return 0;
+        if (!leftDate) return 1;
+        if (!rightDate) return -1;
+        return leftDate.getTime() - rightDate.getTime();
+      }
+
+      function compareWbs(left, right) {
+        const partsLeft = String(left || "").split(".").map((part) => Number(part) || 0);
+        const partsRight = String(right || "").split(".").map((part) => Number(part) || 0);
+        for (let index = 0; index < Math.max(partsLeft.length, partsRight.length); index += 1) {
+          const leftValue = partsLeft[index] || 0;
+          const rightValue = partsRight[index] || 0;
+          if (leftValue !== rightValue) return leftValue - rightValue;
+        }
+        return 0;
+      }
+
+      function filterTasks(tasks) {
+        switch (state.filter) {
+          case "milestone":
+            return tasks.filter((task) => task.milestone);
+          case "unassigned":
+            return tasks.filter((task) => !projectAssignments(task.project_id).some((assignment) => assignment.task_id === task.id));
+          case "critical":
+            return tasks.filter((task) => !task.percent_complete || Number(task.percent_complete) < 100);
+          case "all":
+          default:
+            return tasks;
+        }
+      }
+
+      function orderedVisibleTasks() {
+        const tasks = selectedProject() ? projectTasks(state.selectedProjectId) : [];
+        return sortTasks(filterTasks(tasks));
+      }
+
+      function buildTimeline(tasks) {
+        if (!tasks.length) {
+          const base = new Date();
+          const start = startOfWeek(base);
+          const columns = [];
+          for (let index = 0; index < 8; index += 1) {
+            columns.push(addDays(start, index * 7));
+          }
+          return { start, columns, unitWidth: 92, unit: "week" };
+        }
+
+        const dates = [];
+        tasks.forEach((task) => {
+          const start = parseDate(task.calculated_start_date || task.start_date);
+          const finish = parseDate(task.calculated_finish_date || task.finish_date);
+          if (start) dates.push(start);
+          if (finish) dates.push(finish);
+        });
+        const minDate = dates.length ? new Date(Math.min(...dates.map((date) => date.getTime()))) : new Date();
+        const maxDate = dates.length ? new Date(Math.max(...dates.map((date) => date.getTime()))) : addDays(minDate, 14);
+        const paddedStart = addDays(minDate, -7);
+        const paddedEnd = addDays(maxDate, 14);
+
+        switch (state.zoom) {
+          case "day": {
+            const columns = [];
+            let cursor = new Date(paddedStart);
+            while (cursor <= paddedEnd) {
+              columns.push(new Date(cursor));
+              cursor = addDays(cursor, 1);
+            }
+            return { start: paddedStart, columns, unitWidth: 28, unit: "day" };
+          }
+          case "month": {
+            const start = startOfMonth(paddedStart);
+            const columns = [];
+            let cursor = new Date(start);
+            while (cursor <= paddedEnd) {
+              columns.push(new Date(cursor));
+              cursor = addMonths(cursor, 1);
+            }
+            return { start, columns, unitWidth: 104, unit: "month" };
+          }
+          case "quarter": {
+            const start = startOfQuarter(paddedStart);
+            const columns = [];
+            let cursor = new Date(start);
+            while (cursor <= paddedEnd) {
+              columns.push(new Date(cursor));
+              cursor = addMonths(cursor, 3);
+            }
+            return { start, columns, unitWidth: 140, unit: "quarter" };
+          }
+          case "week":
+          default: {
+            const start = startOfWeek(paddedStart);
+            const columns = [];
+            let cursor = new Date(start);
+            while (cursor <= paddedEnd) {
+              columns.push(new Date(cursor));
+              cursor = addDays(cursor, 7);
+            }
+            return { start, columns, unitWidth: 84, unit: "week" };
+          }
+        }
+      }
+
+      function columnLabel(date) {
+        switch (state.zoom) {
+          case "day":
+            return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }).format(date);
+          case "month":
+            return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(date);
+          case "quarter": {
+            const quarter = Math.floor(date.getMonth() / 3) + 1;
+            return `Q${quarter} ${date.getFullYear()}`;
+          }
+          case "week":
+          default: {
+            const end = addDays(date, 6);
+            return `${formatDateLong(date)} - ${formatDateLong(end)}`;
+          }
+        }
+      }
+
+      function unitDistance(start, end) {
+        const current = new Date(start);
+        let distance = 0;
+        switch (state.zoom) {
+          case "day":
+            distance = Math.round((end - current) / 86400000);
+            break;
+          case "month":
+            distance = (end.getFullYear() - current.getFullYear()) * 12 + (end.getMonth() - current.getMonth());
+            break;
+          case "quarter":
+            distance = ((end.getFullYear() - current.getFullYear()) * 12 + (end.getMonth() - current.getMonth())) / 3;
+            break;
+          case "week":
+          default:
+            distance = Math.round((end - current) / 86400000 / 7);
+            break;
+        }
+        return Math.max(0, distance);
+      }
+
+      function taskStartAndFinish(task) {
+        const start = parseDate(task.calculated_start_date || task.start_date || selectedProject()?.start_date);
+        const finish = parseDate(task.calculated_finish_date || task.finish_date || task.calculated_start_date || task.start_date);
+        return { start, finish };
+      }
+
+      function renderMenuTabs() {
+        const container = $("menuTabs");
+        container.innerHTML = ribbonTabs
+          .map(
+            (tab) => `
+              <button class="${tab === state.activeTab ? "active" : ""}" data-menu-tab="${tab}" type="button">${tab}</button>
+            `
+          )
+          .join("");
+      }
+
+      function renderRibbon() {
+        const container = $("ribbonGroups");
+        const groups = ribbonActions[state.activeTab] || [];
+        container.innerHTML = groups
+          .map(
+            (group) => `
+              <div class="ribbon-group">
+                <div class="ribbon-group-title">${group.title}</div>
+                <div class="ribbon-buttons">
+                  ${group.buttons
+                    .map(
+                      (button) => `
+                        <button class="${button.primary ? "primary" : ""}" data-ribbon-action="${escapeHtml(button.label)}" type="button">${button.label}</button>
+                      `
+                    )
+                    .join("")}
+                </div>
+              </div>
+            `
+          )
+          .join("");
+      }
+
+      function renderViewButtons() {
+        const container = $("viewButtons");
+        const groups = [
+          { title: "Task Views", items: viewModes.filter((view) => ["gantt", "tracking", "taskUsageDetail", "network", "wbs"].includes(view.id)) },
+          { title: "Resource Views", items: viewModes.filter((view) => ["resourceUsageDetail", "resources", "rbs", "resourceUsage", "projects"].includes(view.id)) },
+          { title: "Sub-Views", items: viewModes.filter((view) => ["histogram", "charts"].includes(view.id)) },
+        ];
+        container.innerHTML = groups
+          .map(
+            (group) => `
+              <div class="view-group">
+                <div class="ribbon-group-title">${group.title}</div>
+                <div class="view-list">
+                  ${group.items
+                    .map(
+                      (view) => `
+                        <button class="${view.id === state.activeView ? "active" : ""}" data-view="${view.id}" type="button">${view.label}</button>
+                      `
+                    )
+                    .join("")}
+                </div>
+              </div>
+            `
+          )
+          .join("");
       }
 
       function renderProjectList() {
         const container = $("projectList");
         if (!state.snapshot.projects.length) {
-          container.innerHTML = '<div class="muted">No projects yet. Add the first one above.</div>';
+          container.innerHTML = '<div class="muted small">No projects yet. Create one in the inspector.</div>';
           return;
         }
 
         container.innerHTML = state.snapshot.projects
           .map((project) => {
-            const selected = project.id === state.selectedProjectId ? "selected" : "";
+            const active = project.id === state.selectedProjectId ? "active" : "";
+            const countTasks = projectTasks(project.id).length;
+            const countDependencies = projectDependencies(project.id).length;
             return `
-              <div class="item ${selected}">
-                <div class="item-head">
-                  <div>
-                    <h3 class="item-title">${escapeHtml(project.name)}</h3>
-                    <div class="muted">${escapeHtml(project.id)}</div>
-                  </div>
-                  <span class="pill">${tasksForProject(project.id).length} tasks · ${dependenciesForProject(project.id).length} deps</span>
-                </div>
-                <p class="muted">${escapeHtml(project.description || "No description")}</p>
-                <div class="muted small">${formatDate(project.start_date)} → ${formatDate(project.finish_date)}</div>
-                <div class="actions" style="margin-top:10px">
-                  <button class="ghost" type="button" data-edit-project="${project.id}">Edit</button>
-                  <button class="ghost" type="button" data-select-project="${project.id}">Open</button>
-                  <button class="danger" type="button" data-delete-project="${project.id}">Delete</button>
+              <div class="project-card ${active}">
+                <div class="name">${escapeHtml(project.name)}</div>
+                <div class="muted small">${escapeHtml(formatDate(project.start_date))} → ${escapeHtml(formatDate(project.finish_date))}</div>
+                <div class="muted small">${countTasks} tasks · ${countDependencies} links</div>
+                <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
+                  <button data-open-project="${project.id}" type="button">Open</button>
+                  <button data-edit-project="${project.id}" type="button">Edit</button>
                 </div>
               </div>
             `;
@@ -624,258 +1544,1154 @@
           .join("");
       }
 
-      function renderTaskList() {
-        const container = $("taskList");
-        const tasks = filteredTasks();
-        if (!tasks.length) {
-          container.innerHTML = '<div class="muted">No tasks for this project yet.</div>';
+      function renderCounts() {
+        const project = selectedProject();
+        const tasks = project ? projectTasks(project.id) : [];
+        const dependencies = project ? projectDependencies(project.id) : [];
+        const resources = project ? projectResources(project.id) : [];
+        $("countsPill").textContent = `${tasks.length} tasks · ${dependencies.length} links · ${resources.length} resources`;
+        $("footerStats").textContent = `${state.snapshot.projects.length} projects · ${state.snapshot.tasks.length} tasks · ${state.snapshot.resources.length} resources`;
+        $("selectedProjectPill").textContent = project ? project.name : "No project selected";
+      }
+
+      function renderSelectionSummary() {
+        const project = selectedProject();
+        const task = selectedTask();
+        const resource = selectedResource();
+        const calendar = selectedCalendar();
+        const dependency = selectedDependency();
+        const assignment = state.snapshot.assignments.find((item) => item.id === state.selectedAssignmentId) || null;
+        const assignmentTask = assignment ? state.snapshot.tasks.find((item) => item.id === assignment.task_id) : null;
+        const assignmentResource = assignment ? state.snapshot.resources.find((item) => item.id === assignment.resource_id) : null;
+        const lines = [];
+        lines.push(`Project: ${project ? project.name : "none"}`);
+        lines.push(`Task: ${task ? task.name : "none"}`);
+        lines.push(`Resource: ${resource ? resource.name : "none"}`);
+        lines.push(`Calendar: ${calendar ? calendar.name : "none"}`);
+        lines.push(`Link: ${dependency ? dependency.relation : "none"}`);
+        lines.push(
+          `Assignment: ${
+            assignment
+              ? `${assignmentTask ? assignmentTask.name : assignment.task_id} -> ${assignmentResource ? assignmentResource.name : assignment.resource_id}`
+              : "none"
+          }`
+        );
+        $("selectionSummary").innerHTML = lines
+          .map((line) => {
+            const [label, value] = line.split(": ");
+            return `<div class="summary-line"><span class="muted">${label}</span><span>${escapeHtml(value)}</span></div>`;
+          })
+          .join("");
+      }
+
+      function renderSheetAndGantt() {
+        const tasks = orderedVisibleTasks();
+        const project = selectedProject();
+        if (!project) {
+          $("canvasBody").innerHTML = `
+            <div class="summary-box">
+              Select or create a project from the left side to begin.
+            </div>
+          `;
           return;
         }
 
-        container.innerHTML = tasks
-          .map((task) => `
-            <div class="item">
-              <div class="item-head">
-                <div>
-                  <h3 class="item-title">${escapeHtml(task.name)}</h3>
-                  <div class="muted">${escapeHtml(task.id)}</div>
-                </div>
-                <span class="pill">${Number(task.percent_complete || 0)}%</span>
+        if (state.activeView === "tracking") {
+          renderGanttLikeView("Tracking Gantt");
+          return;
+        }
+
+        if (state.activeView === "taskUsageDetail") {
+          renderTaskUsageDetailView();
+          return;
+        }
+
+        if (state.activeView === "resourceUsageDetail") {
+          renderResourceUsageDetailView();
+          return;
+        }
+
+        if (state.activeView === "resourceUsage") {
+          renderResourceUsageSummaryView();
+          return;
+        }
+
+        if (state.activeView === "taskUsage") {
+          renderTaskUsageSummaryView();
+          return;
+        }
+
+        if (state.activeView === "resources") {
+          renderResourceSheet();
+          return;
+        }
+
+        if (state.activeView === "projects") {
+          renderProjectsView();
+          return;
+        }
+
+        if (state.activeView === "rbs") {
+          renderRbsView();
+          return;
+        }
+
+        if (state.activeView === "network") {
+          renderNetworkView();
+          return;
+        }
+
+        if (state.activeView === "histogram") {
+          renderHistogramView();
+          return;
+        }
+
+        if (state.activeView === "charts") {
+          renderChartsView();
+          return;
+        }
+
+        if (state.activeView === "wbs") {
+          renderWbsView();
+          return;
+        }
+
+        renderGanttLikeView("Gantt");
+      }
+
+      function renderGanttLikeView(title) {
+        const tasks = orderedVisibleTasks();
+        const project = selectedProject();
+        const timeline = buildTimeline(tasks);
+        const width = timeline.columns.length * timeline.unitWidth;
+
+        $("canvasBody").innerHTML = `
+          <div class="sheet-grid">
+            <section class="sheet">
+              <div class="sheet-header">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:64px">WBS</th>
+                      <th>Task Name</th>
+                      <th style="width:72px">Duration</th>
+                      <th style="width:90px">Start</th>
+                      <th style="width:90px">Finish</th>
+                      <th style="width:120px">Predecessors</th>
+                      <th style="width:140px">Resource Names</th>
+                    </tr>
+                  </thead>
+                </table>
               </div>
-              <div class="muted small">${formatDate(task.start_date)} → ${formatDate(task.finish_date)}</div>
-              <div class="actions" style="margin-top:10px">
-                <button class="ghost" type="button" data-edit-task="${task.id}">Edit</button>
-                <button class="danger" type="button" data-delete-task="${task.id}">Delete</button>
+              <div class="sheet-body">
+                <table>
+                  <tbody>
+                    ${tasks
+                      .map((task) => {
+                        const selected = task.id === state.selectedTaskId ? "selected" : "";
+                        const summary = task.children_count ? "summary-row" : "";
+                        const level = Math.max(1, Number(task.outline_level || 1));
+                        const predecessors = taskPredecessors(project.id, task.id).join(", ") || "—";
+                        const resources = taskResourceNames(project.id, task.id).join(", ") || "—";
+                        return `
+                          <tr class="${selected} ${summary}" data-task-row="${task.id}">
+                            <td>${escapeHtml(task.wbs || "")}</td>
+                            <td>
+                              <div class="task-name" style="--level:${level}">
+                                <span class="task-indent"></span>
+                                <span>${escapeHtml(task.name)}</span>
+                                ${task.milestone ? '<span class="task-badge">Milestone</span>' : ""}
+                              </div>
+                            </td>
+                            <td>${escapeHtml(String(task.duration_hours ?? 0))}h</td>
+                            <td>${escapeHtml(formatDate(task.calculated_start_date || task.start_date))}</td>
+                            <td>${escapeHtml(formatDate(task.calculated_finish_date || task.finish_date))}</td>
+                            <td>${escapeHtml(predecessors)}</td>
+                            <td>${escapeHtml(resources)}</td>
+                          </tr>
+                        `;
+                      })
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            <section class="gantt">
+              <div class="gantt-header">
+                <div class="gantt-header-grid" style="--unit-width:${timeline.unitWidth}px; width:${width}px">
+                  ${timeline.columns.map((column) => `<div class="cell">${escapeHtml(columnLabel(column))}</div>`).join("")}
+                </div>
+              </div>
+              <div class="gantt-body" id="ganttBody" style="--unit-width:${timeline.unitWidth}px; min-width:${width}px">
+                <svg class="gantt-lines" id="ganttLines"></svg>
+                ${tasks
+                  .map((task) => {
+                    const { start, finish } = taskStartAndFinish(task);
+                    const startUnits = unitDistance(timeline.start, start || timeline.start);
+                    const durationUnits = Math.max(1, unitDistance(start || timeline.start, finish || start || timeline.start) + 1);
+                    const left = startUnits * timeline.unitWidth;
+                    const barWidth = Math.max(timeline.unitWidth / 2, durationUnits * timeline.unitWidth - 6);
+                    const selected = task.id === state.selectedTaskId ? "selected" : "";
+                    const progress = Math.max(0, Math.min(100, Number(task.percent_complete || 0)));
+                    return `
+                      <div class="gantt-row ${selected}" data-task-gantt="${task.id}" style="min-width:${width}px">
+                        <div class="gantt-row-bg"></div>
+                        <div class="gantt-row-content">
+                          <div class="gantt-bar ${task.children_count ? "summary" : ""}" data-task-bar="${task.id}" style="left:${left}px; width:${barWidth}px">
+                            <div class="progress" style="width:${progress}%"></div>
+                            <div class="label">${escapeHtml(task.name)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            </section>
+          </div>
+        `;
+
+        requestAnimationFrame(drawDependencyLinks);
+      }
+
+      function renderTaskUsageDetailView() {
+        const tasks = orderedVisibleTasks();
+        const project = selectedProject();
+        const assignments = projectAssignments(project.id);
+        const timeline = buildTimeline(tasks);
+        const width = timeline.columns.length * timeline.unitWidth;
+
+        $("canvasBody").innerHTML = `
+          <div class="sheet-grid">
+            <section class="sheet">
+              <div class="sheet-header">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:64px">WBS</th>
+                      <th>Task Name</th>
+                      <th style="width:72px">Duration</th>
+                      <th style="width:90px">Start</th>
+                      <th style="width:90px">Finish</th>
+                      <th style="width:120px">Predecessors</th>
+                      <th style="width:140px">Resource Names</th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
+              <div class="sheet-body">
+                <table>
+                  <tbody>
+                    ${tasks
+                      .map((task) => {
+                        const selected = task.id === state.selectedTaskId ? "selected" : "";
+                        const summary = task.children_count ? "summary-row" : "";
+                        const level = Math.max(1, Number(task.outline_level || 1));
+                        const predecessors = taskPredecessors(project.id, task.id).join(", ") || "—";
+                        const resources = taskResourceNames(project.id, task.id).join(", ") || "—";
+                        return `
+                          <tr class="${selected} ${summary}" data-task-row="${task.id}">
+                            <td>${escapeHtml(task.wbs || "")}</td>
+                            <td>
+                              <div class="task-name" style="--level:${level}">
+                                <span class="task-indent"></span>
+                                <span>${escapeHtml(task.name)}</span>
+                                ${task.milestone ? '<span class="task-badge">Milestone</span>' : ""}
+                              </div>
+                            </td>
+                            <td>${escapeHtml(String(task.duration_hours ?? 0))}h</td>
+                            <td>${escapeHtml(formatDate(task.calculated_start_date || task.start_date))}</td>
+                            <td>${escapeHtml(formatDate(task.calculated_finish_date || task.finish_date))}</td>
+                            <td>${escapeHtml(predecessors)}</td>
+                            <td>${escapeHtml(resources)}</td>
+                          </tr>
+                        `;
+                      })
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            <section class="gantt">
+              <div class="gantt-header">
+                <div class="gantt-header-grid" style="--unit-width:${timeline.unitWidth}px; width:${width}px">
+                  ${timeline.columns.map((column) => `<div class="cell">${escapeHtml(columnLabel(column))}</div>`).join("")}
+                </div>
+              </div>
+              <div class="gantt-body" id="ganttBody" style="--unit-width:${timeline.unitWidth}px; min-width:${width}px">
+                <svg class="gantt-lines" id="ganttLines"></svg>
+                ${tasks
+                  .map((task) => {
+                    const { start, finish } = taskStartAndFinish(task);
+                    const startUnits = unitDistance(timeline.start, start || timeline.start);
+                    const durationUnits = Math.max(1, unitDistance(start || timeline.start, finish || start || timeline.start) + 1);
+                    const left = startUnits * timeline.unitWidth;
+                    const barWidth = Math.max(timeline.unitWidth / 2, durationUnits * timeline.unitWidth - 6);
+                    const selected = task.id === state.selectedTaskId ? "selected" : "";
+                    const progress = Math.max(0, Math.min(100, Number(task.percent_complete || 0)));
+                    return `
+                      <div class="gantt-row ${selected}" data-task-gantt="${task.id}" style="min-width:${width}px">
+                        <div class="gantt-row-bg"></div>
+                        <div class="gantt-row-content">
+                          <div class="gantt-bar ${task.children_count ? "summary" : ""}" data-task-bar="${task.id}" style="left:${left}px; width:${barWidth}px">
+                            <div class="progress" style="width:${progress}%"></div>
+                            <div class="label">${escapeHtml(task.name)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            </section>
+          </div>
+        `;
+
+        requestAnimationFrame(drawDependencyLinks);
+      }
+
+      function renderResourceUsageDetailView() {
+        const resources = projectResources(state.selectedProjectId);
+        const project = selectedProject();
+        const assignments = projectAssignments(project.id);
+        $("canvasBody").innerHTML = `
+          <div class="stack">
+            <div class="panel-card">
+              <header>Resource Usage Detail</header>
+              <div class="body">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th style="width:120px">Type</th>
+                      <th style="width:130px">Assignments</th>
+                      <th style="width:130px">Max Units</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${resources
+                      .map((resource) => {
+                        const count = assignments.filter((assignment) => assignment.resource_id === resource.id).length;
+                        return `
+                          <tr class="${resource.id === state.selectedResourceId ? "selected" : ""}" data-resource-row="${resource.id}">
+                            <td>${escapeHtml(resource.name)}</td>
+                            <td>${escapeHtml(resource.resource_type)}</td>
+                            <td>${escapeHtml(String(count))}</td>
+                            <td>${escapeHtml(String(resource.max_units || 0))}%</td>
+                          </tr>
+                        `;
+                      })
+                      .join("")}
+                  </tbody>
+                </table>
               </div>
             </div>
-          `)
-          .join("");
+          </div>
+        `;
       }
 
-      function renderDependencyList() {
-        const container = $("dependencyList");
-        const dependencies = filteredDependencies();
-        if (!dependencies.length) {
-          container.innerHTML = '<div class="muted">No dependencies for this project yet.</div>';
-          return;
-        }
+      function renderTaskUsageSummaryView() {
+        const tasks = orderedVisibleTasks();
+        $("canvasBody").innerHTML = `
+          <div class="panel-card">
+            <header>Task Usage</header>
+            <div class="body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Task</th>
+                    <th style="width:140px">Percent Complete</th>
+                    <th style="width:160px">Duration</th>
+                    <th style="width:180px">Resources</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tasks
+                    .map((task) => `
+                      <tr class="${task.id === state.selectedTaskId ? "selected" : ""}" data-task-row="${task.id}">
+                        <td>${escapeHtml(task.name)}</td>
+                        <td><div class="pill" style="border-radius:4px">${escapeHtml(String(Math.round(task.percent_complete || 0)))}%</div></td>
+                        <td>${escapeHtml(String(task.duration_hours ?? 0))}h</td>
+                        <td>${escapeHtml(taskResourceNames(state.selectedProjectId, task.id).join(", ") || "—")}</td>
+                      </tr>
+                    `)
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
 
-        container.innerHTML = dependencies
-          .map((dependency) => {
-            const predecessor = state.snapshot.tasks.find((task) => task.id === dependency.predecessor_task_id);
-            const successor = state.snapshot.tasks.find((task) => task.id === dependency.successor_task_id);
-            return `
-              <div class="item">
-                <div class="item-head">
-                  <div>
-                    <h3 class="item-title">${escapeHtml(predecessor ? predecessor.name : dependency.predecessor_task_id)} → ${escapeHtml(successor ? successor.name : dependency.successor_task_id)}</h3>
-                    <div class="muted">${escapeHtml(dependency.relation)}</div>
-                  </div>
-                  <button class="danger" type="button" data-delete-dependency="${dependency.id}">Delete</button>
-                </div>
+      function renderResourceUsageSummaryView() {
+        const resources = projectResources(state.selectedProjectId);
+        $("canvasBody").innerHTML = `
+          <div class="panel-card">
+            <header>Resource Usage</header>
+            <div class="body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Resource</th>
+                    <th style="width:140px">Units</th>
+                    <th style="width:180px">Assignments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${resources
+                    .map((resource) => {
+                      const assignments = projectAssignments(state.selectedProjectId).filter((assignment) => assignment.resource_id === resource.id);
+                      return `
+                        <tr class="${resource.id === state.selectedResourceId ? "selected" : ""}" data-resource-row="${resource.id}">
+                          <td>${escapeHtml(resource.name)}</td>
+                          <td>${escapeHtml(String(resource.max_units || 0))}%</td>
+                          <td>${escapeHtml(assignments.map((assignment) => assignment.task_id).join(", ") || "—")}</td>
+                        </tr>
+                      `;
+                    })
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderProjectsView() {
+        $("canvasBody").innerHTML = `
+          <div class="panel-card">
+            <header>Projects</header>
+            <div class="body">
+              <div class="project-list">
+                ${state.snapshot.projects
+                  .map(
+                    (project) => `
+                      <div class="project-card ${project.id === state.selectedProjectId ? "active" : ""}" data-open-project="${project.id}">
+                        <div class="name">${escapeHtml(project.name)}</div>
+                        <div class="muted small">${escapeHtml(formatDate(project.start_date))} → ${escapeHtml(formatDate(project.finish_date))}</div>
+                        <div class="muted small">${projectTasks(project.id).length} tasks · ${projectDependencies(project.id).length} links · ${projectResources(project.id).length} resources</div>
+                      </div>
+                    `
+                  )
+                  .join("")}
               </div>
-            `;
-          })
-          .join("");
+            </div>
+          </div>
+        `;
       }
 
-      function renderResourceList() {
-        const container = $("resourceList");
-        const resources = state.selectedProjectId ? resourcesForProject(state.selectedProjectId) : [];
-        if (!resources.length) {
-          container.innerHTML = '<div class="muted">No resources for this project yet.</div>';
-          return;
-        }
-
-        container.innerHTML = resources
-          .map(
-            (resource) => `
-              <div class="item">
-                <div class="item-head">
-                  <div>
-                    <h3 class="item-title">${escapeHtml(resource.name)}</h3>
-                    <div class="muted">${escapeHtml(resource.resource_type)} · ${escapeHtml(resource.id)}</div>
+      function renderRbsView() {
+        const resources = projectResources(state.selectedProjectId);
+        const grouped = resources.reduce((map, resource) => {
+          const key = resource.group || resource.resource_type || "Ungrouped";
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(resource);
+          return map;
+        }, new Map());
+        $("canvasBody").innerHTML = `
+          <div class="stack">
+            ${Array.from(grouped.entries())
+              .map(
+                ([group, items]) => `
+                  <div class="panel-card">
+                    <header>${escapeHtml(group)}</header>
+                    <div class="body">
+                      <div class="project-list">
+                        ${items
+                          .map(
+                            (resource) => `
+                              <div class="project-card ${resource.id === state.selectedResourceId ? "active" : ""}" data-resource-row="${resource.id}">
+                                <div class="name">${escapeHtml(resource.name)}</div>
+                                <div class="muted small">${escapeHtml(resource.resource_type)} · ${escapeHtml(String(resource.max_units || 0))}%</div>
+                              </div>
+                            `
+                          )
+                          .join("")}
+                      </div>
+                    </div>
                   </div>
-                  <button class="danger" type="button" data-delete-resource="${resource.id}">Delete</button>
-                </div>
-                <div class="muted small">Max units: ${Number(resource.max_units || 0)}% · Rate: ${Number(resource.standard_rate || 0)}</div>
-              </div>
-            `
-          )
-          .join("");
+                `
+              )
+              .join("")}
+          </div>
+        `;
       }
 
-      function renderAssignmentList() {
-        const container = $("assignmentList");
-        const assignments = state.selectedProjectId ? assignmentsForProject(state.selectedProjectId) : [];
-        if (!assignments.length) {
-          container.innerHTML = '<div class="muted">No assignments for this project yet.</div>';
-          return;
-        }
-
-        container.innerHTML = assignments
-          .map((assignment) => {
-            const task = state.snapshot.tasks.find((item) => item.id === assignment.task_id);
-            const resource = state.snapshot.resources.find((item) => item.id === assignment.resource_id);
-            return `
-              <div class="item">
-                <div class="item-head">
-                  <div>
-                    <h3 class="item-title">${escapeHtml(task ? task.name : assignment.task_id)}</h3>
-                    <div class="muted">${escapeHtml(resource ? resource.name : assignment.resource_id)}</div>
-                  </div>
-                  <button class="danger" type="button" data-delete-assignment="${assignment.id}">Delete</button>
-                </div>
-                <div class="muted small">Units: ${Number(assignment.units || 0)}% · Work: ${Number(assignment.work_hours || 0)}h · Cost: ${Number(assignment.cost || 0)}</div>
-              </div>
-            `;
-          })
-          .join("");
+      function renderHistogramView() {
+        const tasks = orderedVisibleTasks();
+        $("canvasBody").innerHTML = `
+          <div class="panel-card">
+            <header>Histogram</header>
+            <div class="body">
+              ${tasks
+                .map((task) => {
+                  const width = Math.max(8, Math.min(100, Number(task.percent_complete || 0)));
+                  return `
+                    <div style="display:grid; grid-template-columns: 260px 1fr; gap:12px; align-items:center; margin-bottom:8px">
+                      <div>${escapeHtml(task.name)}</div>
+                      <div style="height:16px; background:#dbe6f3; border:1px solid #b8c6d8; position:relative">
+                        <div style="height:100%; width:${width}%; background:linear-gradient(180deg, #6ea0d5, #3b6ea8)"></div>
+                      </div>
+                    </div>
+                  `;
+                })
+                .join("")}
+            </div>
+          </div>
+        `;
       }
 
-      function renderCalendarList() {
-        const container = $("calendarList");
-        const calendars = state.snapshot.calendars.filter((calendar) => calendar.project_id === state.selectedProjectId);
-        if (!calendars.length) {
-          container.innerHTML = '<div class="muted">No calendars for this project yet.</div>';
-          return;
-        }
-
-        container.innerHTML = calendars
-          .map(
-            (calendar) => `
-              <div class="item">
-                <div class="item-head">
-                  <div>
-                    <h3 class="item-title">${escapeHtml(calendar.name)}</h3>
-                    <div class="muted">${escapeHtml(calendar.id)}</div>
-                  </div>
-                  <button class="danger" type="button" data-delete-calendar="${calendar.id}">Delete</button>
-                </div>
-                <div class="muted small">${escapeHtml((calendar.working_days || []).join(", ") || "No working days")}</div>
-              </div>
-            `
-          )
-          .join("");
-      }
-
-      function renderDependencySelectors() {
-        const predecessor = $("dependencyPredecessor");
-        const successor = $("dependencySuccessor");
-        const tasks = filteredTasks();
-        const options = ['<option value="">Select task</option>']
-          .concat(tasks.map((task) => `<option value="${task.id}">${escapeHtml(task.name)}</option>`))
-          .join("");
-        predecessor.innerHTML = options;
-        successor.innerHTML = options;
-      }
-
-      function renderResourceSelectors() {
-        const taskSelector = $("assignmentTask");
-        const resourceSelector = $("assignmentResource");
-        const tasks = filteredTasks();
-        const resources = state.selectedProjectId ? resourcesForProject(state.selectedProjectId) : [];
-        taskSelector.innerHTML = ['<option value="">Select task</option>']
-          .concat(tasks.map((task) => `<option value="${task.id}">${escapeHtml(task.name)}</option>`))
-          .join("");
-        resourceSelector.innerHTML = ['<option value="">Select resource</option>']
-          .concat(resources.map((resource) => `<option value="${resource.id}">${escapeHtml(resource.name)}</option>`))
-          .join("");
-      }
-
-      function renderSnapshot() {
-        $("snapshotView").textContent = JSON.stringify(state.snapshot, null, 2);
-      }
-
-      function syncSelection() {
+      function renderChartsView() {
         const project = selectedProject();
-        $("selectedProjectPill").textContent = project ? `${project.name}` : "No project selected";
-        const tasks = filteredTasks();
-        const dependencies = filteredDependencies();
-        const resources = state.selectedProjectId ? resourcesForProject(state.selectedProjectId).length : 0;
-        const assignments = state.selectedProjectId ? assignmentsForProject(state.selectedProjectId).length : 0;
-        $("countsPill").textContent = `${tasks.length} tasks · ${dependencies.length} dependencies · ${resources} resources · ${assignments} assignments`;
+        $("canvasBody").innerHTML = `
+          <div class="stack">
+            <div class="panel-card">
+              <header>Charts</header>
+              <div class="body">
+                <div class="row">
+                  <div class="summary-box">
+                    <div class="muted small">Project</div>
+                    <div style="font-weight:700">${escapeHtml(project?.name || "none")}</div>
+                  </div>
+                  <div class="summary-box">
+                    <div class="muted small">Tasks</div>
+                    <div style="font-weight:700">${escapeHtml(String(project ? projectTasks(project.id).length : 0))}</div>
+                  </div>
+                  <div class="summary-box">
+                    <div class="muted small">Resources</div>
+                    <div style="font-weight:700">${escapeHtml(String(project ? projectResources(project.id).length : 0))}</div>
+                  </div>
+                  <div class="summary-box">
+                    <div class="muted small">Dependencies</div>
+                    <div style="font-weight:700">${escapeHtml(String(project ? projectDependencies(project.id).length : 0))}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderWbsView() {
+        const tasks = orderedVisibleTasks();
+        $("canvasBody").innerHTML = `
+          <div class="sheet-grid" style="grid-template-columns: 1fr;">
+            <section class="sheet">
+              <div class="sheet-header">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:64px">WBS</th>
+                      <th>Task</th>
+                      <th style="width:120px">Outline</th>
+                      <th style="width:120px">Complete</th>
+                      <th style="width:100px">Status</th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
+              <div class="sheet-body">
+                <table>
+                  <tbody>
+                    ${tasks
+                      .map((task) => {
+                        const selected = task.id === state.selectedTaskId ? "selected" : "";
+                        return `
+                          <tr class="${selected}" data-task-row="${task.id}">
+                            <td>${escapeHtml(task.wbs || "")}</td>
+                            <td><span style="padding-left:${Math.max(0, (task.outline_level || 1) - 1) * 14}px">${escapeHtml(task.name)}</span></td>
+                            <td>${escapeHtml(String(task.outline_level || 1))}</td>
+                            <td>${escapeHtml(String(Math.round(task.percent_complete || 0)))}%</td>
+                            <td>${escapeHtml(task.milestone ? "Milestone" : "Task")}</td>
+                          </tr>
+                        `;
+                      })
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        `;
+      }
+
+      function renderNetworkView() {
+        const tasks = orderedVisibleTasks();
+        const dependencies = projectDependencies(state.selectedProjectId);
+        $("canvasBody").innerHTML = `
+          <div class="stack">
+            <div class="panel-card">
+              <header>Task Network</header>
+              <div class="body">
+                <div class="project-list">
+                  ${tasks
+                    .map(
+                      (task) => `
+                        <div class="project-card ${task.id === state.selectedTaskId ? "active" : ""}" data-task-row="${task.id}">
+                          <div class="name">${escapeHtml(task.name)}</div>
+                          <div class="muted small">${escapeHtml(task.wbs || "")} · ${escapeHtml(formatDate(task.calculated_start_date || task.start_date))} → ${escapeHtml(formatDate(task.calculated_finish_date || task.finish_date))}</div>
+                        </div>
+                      `
+                    )
+                    .join("")}
+                </div>
+              </div>
+            </div>
+            <div class="panel-card">
+              <header>Links</header>
+              <div class="body">
+                <div class="project-list">
+                  ${dependencies
+                    .map((dependency) => {
+                      const predecessor = state.snapshot.tasks.find((task) => task.id === dependency.predecessor_task_id);
+                      const successor = state.snapshot.tasks.find((task) => task.id === dependency.successor_task_id);
+                      return `
+                        <div class="project-card ${dependency.id === state.selectedDependencyId ? "active" : ""}" data-dependency-row="${dependency.id}">
+                          <div class="name">${escapeHtml(predecessor ? predecessor.name : dependency.predecessor_task_id)} → ${escapeHtml(successor ? successor.name : dependency.successor_task_id)}</div>
+                          <div class="muted small">${escapeHtml(dependency.relation)} lag ${escapeHtml(String(dependency.lag_hours || 0))}h</div>
+                        </div>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderResourceSheet() {
+        const resources = projectResources(state.selectedProjectId);
+        const assignments = projectAssignments(state.selectedProjectId);
+        $("canvasBody").innerHTML = `
+          <div class="sheet-grid" style="grid-template-columns: 1fr;">
+            <section class="sheet">
+              <div class="sheet-header">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th style="width:120px">Type</th>
+                      <th style="width:110px">Max Units</th>
+                      <th style="width:110px">Rate</th>
+                      <th style="width:110px">Cost/Use</th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
+              <div class="sheet-body">
+                <table>
+                  <tbody>
+                    ${resources
+                      .map(
+                        (resource) => `
+                          <tr class="${resource.id === state.selectedResourceId ? "selected" : ""}" data-resource-row="${resource.id}">
+                            <td>${escapeHtml(resource.name)}</td>
+                            <td>${escapeHtml(resource.resource_type)}</td>
+                            <td>${escapeHtml(String(resource.max_units || 0))}%</td>
+                            <td>${escapeHtml(String(resource.standard_rate || 0))}</td>
+                            <td>${escapeHtml(String(resource.cost_per_use || 0))}</td>
+                          </tr>
+                        `
+                      )
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+          <div class="panel-card" style="margin-top: 12px">
+            <header>Assignments</header>
+            <div class="body">
+              <div class="project-list">
+                ${assignments
+                  .map((assignment) => {
+                    const task = state.snapshot.tasks.find((item) => item.id === assignment.task_id);
+                    const resource = state.snapshot.resources.find((item) => item.id === assignment.resource_id);
+                    return `
+                      <div class="project-card ${assignment.id === state.selectedAssignmentId ? "active" : ""}" data-assignment-row="${assignment.id}">
+                        <div class="name">${escapeHtml(task ? task.name : assignment.task_id)} · ${escapeHtml(resource ? resource.name : assignment.resource_id)}</div>
+                        <div class="muted small">${escapeHtml(String(assignment.units || 0))}% · ${escapeHtml(String(assignment.work_hours || 0))}h · ${escapeHtml(String(assignment.cost || 0))}</div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderCalendarView() {
+        const calendars = projectCalendars(state.selectedProjectId);
+        $("canvasBody").innerHTML = `
+          <div class="project-list">
+            ${calendars
+              .map(
+                (calendar) => `
+                  <div class="project-card ${calendar.id === state.selectedCalendarId ? "active" : ""}" data-calendar-row="${calendar.id}">
+                    <div class="name">${escapeHtml(calendar.name)}</div>
+                    <div class="muted small">Hours/day: ${escapeHtml(String(calendar.hours_per_day || 8))}</div>
+                    <div class="muted small">Working days: ${escapeHtml((calendar.working_days || []).join(", "))}</div>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function drawDependencyLinks() {
+        const svg = $("ganttLines");
+        const body = $("ganttBody");
+        if (!svg || !body) return;
+        const bars = new Map();
+        body.querySelectorAll("[data-task-bar]").forEach((bar) => {
+          bars.set(bar.dataset.taskBar, bar.getBoundingClientRect());
+        });
+        const rect = body.getBoundingClientRect();
+        const dependencies = projectDependencies(state.selectedProjectId).filter((dependency) => bars.has(dependency.predecessor_task_id) && bars.has(dependency.successor_task_id));
+        const lines = dependencies
+          .map((dependency) => {
+            const left = bars.get(dependency.predecessor_task_id);
+            const right = bars.get(dependency.successor_task_id);
+            const x1 = left.right - rect.left;
+            const y1 = left.top - rect.top + left.height / 2;
+            const x2 = right.left - rect.left;
+            const y2 = right.top - rect.top + right.height / 2;
+            const mid = Math.max(x1 + 22, x2 - 22);
+            return `
+              <path d="M ${x1} ${y1} L ${mid} ${y1} L ${mid} ${y2} L ${x2} ${y2}" stroke="#4f75a0" stroke-width="1.5" fill="none" marker-end="url(#arrowHead)" />
+            `;
+          })
+          .join("");
+        svg.setAttribute("width", rect.width);
+        svg.setAttribute("height", Math.max(rect.height, 300));
+        svg.innerHTML = `
+          <defs>
+            <marker id="arrowHead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 Z" fill="#4f75a0" />
+            </marker>
+          </defs>
+          ${lines}
+        `;
+      }
+
+      function renderInspectorDefaults() {
+        const project = state.editingProjectId
+          ? state.snapshot.projects.find((item) => item.id === state.editingProjectId) || null
+          : null;
+        const task = state.editingTaskId
+          ? state.snapshot.tasks.find((item) => item.id === state.editingTaskId) || null
+          : null;
+        const dependency = selectedDependency();
+        const resource = selectedResource();
+        const calendar = selectedCalendar();
+
+        $("projectName").value = project?.name || "";
+        $("projectDescription").value = project?.description || "";
+        $("projectStart").value = project?.start_date || "";
+        $("projectFinish").value = project?.finish_date || "";
+        $("projectStatus").value = project?.status || "planning";
+        $("projectPriority").value = project?.priority ?? 500;
+        $("projectNotes").value = project?.notes || "";
+
+        $("taskName").value = task?.name || "";
+        $("taskStart").value = task?.start_date || "";
+        $("taskFinish").value = task?.finish_date || "";
+        $("taskDuration").value = task?.duration_hours ?? 8;
+        $("taskPercent").value = task?.percent_complete ?? 0;
+        $("taskSortOrder").value = task?.sort_order ?? 0;
+        $("taskConstraint").value = task?.constraint_type || "ASAP";
+        $("taskNotes").value = task?.notes || "";
+
+        $("resourceName").value = resource?.name || "";
+        $("resourceType").value = resource?.resource_type || "work";
+        $("resourceUnits").value = resource?.max_units ?? 100;
+        $("resourceRate").value = resource?.standard_rate ?? 0;
+        $("resourceCost").value = resource?.cost_per_use ?? 0;
+
+        $("calendarName").value = calendar?.name || "";
+        $("calendarTimezone").value = calendar?.timezone || "";
+        $("calendarHours").value = calendar?.hours_per_day ?? 8;
+
+        const projectTasksList = selectedProject() ? projectTasks(state.selectedProjectId) : [];
+        const parentOptions = ['<option value="">No parent</option>']
+          .concat(
+            projectTasksList.map(
+              (item) => `<option value="${item.id}" ${task?.parent_task_id === item.id ? "selected" : ""}>${escapeHtml(item.name)}</option>`
+            )
+          )
+          .join("");
+        $("taskParent").innerHTML = parentOptions;
+
+        const taskOptions = ['<option value="">Select task</option>']
+          .concat(projectTasksList.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
+          .join("");
+        const resourceOptions = ['<option value="">Select resource</option>']
+          .concat(projectResources(state.selectedProjectId || "").map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
+          .join("");
+        const calendarOptions = ['<option value="">Select calendar</option>']
+          .concat(projectCalendars(state.selectedProjectId || "").map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
+          .join("");
+        $("dependencyPredecessor").innerHTML = taskOptions;
+        $("dependencySuccessor").innerHTML = taskOptions;
+        $("assignmentTask").innerHTML = taskOptions;
+        $("assignmentResource").innerHTML = resourceOptions;
+        $("taskCalendar").innerHTML = calendarOptions;
+
+        if (dependency) {
+          $("dependencyPredecessor").value = dependency.predecessor_task_id;
+          $("dependencySuccessor").value = dependency.successor_task_id;
+          $("dependencyRelation").value = dependency.relation || "FS";
+          $("dependencyLag").value = dependency.lag_hours ?? 0;
+        }
+      }
+
+      function renderScreenHeader() {
+        const map = {
+          gantt: ["Gantt", "Task table and schedule bars"],
+          tracking: ["Tracking Gantt", "Baseline-aware schedule bars"],
+          taskUsageDetail: ["Task Usage Detail", "Task-centric usage and assignment detail"],
+          resourceUsageDetail: ["Resource Usage Detail", "Resource-centric usage and assignment detail"],
+          network: ["Network", "Task dependency network"],
+          wbs: ["WBS", "Hierarchical task breakdown"],
+          rbs: ["RBS", "Resource breakdown structure"],
+          resources: ["Resources", "Resource sheet"],
+          projects: ["Projects", "Project list and overview"],
+          taskUsage: ["Task Usage", "Task usage summary"],
+          resourceUsage: ["Resource Usage", "Resource usage summary"],
+          histogram: ["Histogram", "Work distribution by task"],
+          charts: ["Charts", "Project summaries and status"],
+          calendar: ["Calendar", "Working days and calendar setup"],
+        };
+        const [title, subtitle] = map[state.activeView] || map.gantt;
+        $("screenTitle").textContent = title;
+        $("screenSubtitle").textContent = subtitle;
+      }
+
+      function renderStatus() {
+        $("statusText").textContent = state.status;
+        if (state.bridgeError) {
+          $("connectionPill").textContent = "Java bridge error";
+        } else if (state.bridge?.running) {
+          $("connectionPill").textContent = state.snapshot ? "Rust + Java connected" : "Java bridge ready";
+        } else {
+          $("connectionPill").textContent = "Java bridge idle";
+        }
+      }
+
+      function renderBridgePanel() {
+        const bridge = state.bridge || {};
+        const sampleFiles = Array.isArray(bridge.sample_files) ? bridge.sample_files : [];
+        const select = $("bridgeSampleSelect");
+        if (select) {
+          const current = select.value;
+          select.innerHTML = sampleFiles.length
+            ? sampleFiles.map((path, index) => `<option value="${escapeHtml(path)}">${escapeHtml(path.split(/[/\\]/).pop() || `Sample ${index + 1}`)}</option>`).join("")
+            : '<option value="">No sample files found</option>';
+          if (current && sampleFiles.includes(current)) {
+            select.value = current;
+          }
+        }
+
+        const summaryParts = [];
+        if (bridge.java_executable) summaryParts.push(`java=${bridge.java_executable}`);
+        if (bridge.javac_executable) summaryParts.push(`javac=${bridge.javac_executable}`);
+        if (bridge.sample_files) summaryParts.push(`${bridge.sample_files.length} sample .mpp file(s)`);
+        if (bridge.opened_project) summaryParts.push(`open=${bridge.opened_project}`);
+        if (state.bridgeError) summaryParts.push(`error=${state.bridgeError}`);
+
+        $("bridgeSummary").textContent = summaryParts.length
+          ? summaryParts.join(" · ")
+          : "Java bridge has not been started yet.";
+        $("bridgePill").textContent = bridge.running ? "Java running" : "Bridge idle";
       }
 
       function render() {
         if (!state.snapshot) return;
+        renderMenuTabs();
+        renderRibbon();
+        renderViewButtons();
         renderProjectList();
-        renderTaskList();
-        renderDependencyList();
-        renderCalendarList();
-        renderResourceList();
-        renderAssignmentList();
-        renderDependencySelectors();
-        renderResourceSelectors();
-        renderSnapshot();
-        syncSelection();
-        $("statusText").textContent = state.status;
+        renderCounts();
+        renderSelectionSummary();
+        renderScreenHeader();
+        renderInspectorDefaults();
+        renderSheetAndGantt();
+        renderBridgePanel();
+        renderStatus();
       }
 
       async function refresh() {
-        state.status = "Refreshing workspace...";
-        render();
         state.snapshot = await invoke("workspace_snapshot");
-        if (!state.selectedProjectId || !state.snapshot.projects.some((project) => project.id === state.selectedProjectId)) {
-          state.selectedProjectId = pickFirstProjectId(state.snapshot);
+        state.bridge = await invoke("java_bridge_status");
+        try {
+          await invoke("java_bridge_ping");
+          state.bridge = await invoke("java_bridge_status");
+          state.bridgeError = null;
+        } catch (error) {
+          state.bridgeError = error.message || String(error);
         }
-        state.status = state.snapshot.projects.length
-          ? `Loaded ${state.snapshot.projects.length} project(s)`
-          : "Workspace is empty";
+        if (!state.selectedProjectId || !state.snapshot.projects.some((project) => project.id === state.selectedProjectId)) {
+          state.selectedProjectId = state.snapshot.projects[0] ? state.snapshot.projects[0].id : null;
+        }
+        if (!state.selectedTaskId || !projectTasks(state.selectedProjectId || "").some((task) => task.id === state.selectedTaskId)) {
+          state.selectedTaskId = null;
+        }
+        state.status = state.snapshot.projects.length ? `Loaded ${state.snapshot.projects.length} project(s)` : "Workspace is empty";
         render();
       }
 
-      async function submitProject(event) {
-        event.preventDefault();
-        const projectId = state.editingProjectId;
+      function selectedBridgeSample() {
+        const select = $("bridgeSampleSelect");
+        if (!select || !select.value) {
+          const samples = state.bridge?.sample_files || [];
+          return samples[0] || "";
+        }
+        return select.value;
+      }
+
+      async function pingJavaBridge() {
+        state.bridgeError = null;
+        await invoke("java_bridge_ping");
+        state.bridge = await invoke("java_bridge_status");
+        state.status = "Java bridge ping successful.";
+        render();
+      }
+
+      async function snapshotJavaBridge() {
+        const response = await invoke("java_bridge_snapshot");
+        state.bridge = await invoke("java_bridge_status");
+        state.status = `Java bridge snapshot: ${JSON.stringify(response)}`;
+        render();
+      }
+
+      async function openBridgeSample() {
+        const sample = selectedBridgeSample();
+        if (!sample) {
+          notify("No sample .mpp file was found in the imported ProjectLibre snapshot.");
+          return;
+        }
+        await invoke("java_bridge_open_mpp", { path: sample });
+        state.bridge = await invoke("java_bridge_status");
+        state.status = `Java bridge opened sample: ${sample}`;
+        render();
+      }
+
+      async function importBridgeSample() {
+        const sample = selectedBridgeSample();
+        if (!sample) {
+          notify("No sample .mpp file was found in the imported ProjectLibre snapshot.");
+          return;
+        }
+        await invoke("java_bridge_import_mpp", { path: sample });
+        state.bridge = await invoke("java_bridge_status");
+        state.status = `Java bridge imported sample: ${sample}`;
+        render();
+      }
+
+      function startNewProject() {
+        state.editingProjectId = null;
+        state.selectedProjectId = state.selectedProjectId || null;
+        $("projectForm").reset();
+        $("projectStatus").value = "planning";
+        $("projectPriority").value = "500";
+        state.status = "New project ready.";
+        renderInspectorDefaults();
+      }
+
+      function startNewTask() {
+        state.editingTaskId = null;
+        state.selectedTaskId = null;
+        $("taskForm").reset();
+        $("taskDuration").value = "8";
+        $("taskPercent").value = "0";
+        $("taskSortOrder").value = "0";
+        $("taskConstraint").value = "ASAP";
+        state.status = "New task ready.";
+        renderInspectorDefaults();
+      }
+
+      function setZoom(value) {
+        state.zoom = value;
+        render();
+      }
+
+      function switchView(value) {
+        state.activeView = value;
+        render();
+      }
+
+      async function exportWorkspaceJson() {
+        const json = await invoke("workspace_export_json");
+        state.status = "Workspace exported as JSON.";
+        $("canvasBody").innerHTML = `<pre style="white-space:pre-wrap; margin:0; background:#0e1520; color:#f2f7ff; padding:14px; border-radius:10px; overflow:auto">${escapeHtml(json)}</pre>`;
+        renderStatus();
+      }
+
+      async function exportWorkspaceXml() {
+        const xml = await invoke("workspace_export_xml");
+        state.status = "Workspace exported as XML.";
+        $("canvasBody").innerHTML = `<pre style="white-space:pre-wrap; margin:0; background:#0e1520; color:#f2f7ff; padding:14px; border-radius:10px; overflow:auto">${escapeHtml(xml)}</pre>`;
+        renderStatus();
+      }
+
+      async function importWorkspaceXml() {
+        const payload = window.prompt("Paste ProjectLibre-style XML workspace:");
+        if (!payload) return;
+        state.snapshot = await invoke("workspace_import_xml", { xml: payload });
+        state.selectedProjectId = state.snapshot.projects[0] ? state.snapshot.projects[0].id : null;
+        state.selectedTaskId = null;
+        state.status = "Workspace imported from XML.";
+        render();
+      }
+
+      async function recalculateWorkspace() {
+        state.snapshot = await invoke("workspace_recalculate");
+        state.status = "Workspace recalculated.";
+        render();
+      }
+
+      async function captureBaseline() {
+        if (!state.selectedProjectId) {
+          notify("Choose a project first.");
+          return;
+        }
+        await invoke("workspace_capture_baseline", { project_id: state.selectedProjectId, name: null });
+        state.snapshot = await invoke("workspace_snapshot");
+        state.status = "Baseline captured.";
+        render();
+      }
+
+      async function deleteSelectedProject() {
+        if (!state.selectedProjectId) return;
+        state.snapshot = await invoke("workspace_delete_project", { project_id: state.selectedProjectId });
+        state.selectedProjectId = state.snapshot.projects[0] ? state.snapshot.projects[0].id : null;
+        state.selectedTaskId = null;
+        state.status = "Project deleted.";
+        render();
+      }
+
+      async function deleteSelectedTask() {
+        if (!state.selectedTaskId) return;
+        state.snapshot = await invoke("workspace_delete_task", { task_id: state.selectedTaskId });
+        state.selectedTaskId = null;
+        state.status = "Task deleted.";
+        render();
+      }
+
+      async function deleteSelectedDependency() {
+        if (!state.selectedDependencyId) return;
+        state.snapshot = await invoke("workspace_delete_dependency", { dependency_id: state.selectedDependencyId });
+        state.selectedDependencyId = null;
+        state.status = "Dependency deleted.";
+        render();
+      }
+
+      async function deleteSelectedResource() {
+        if (!state.selectedResourceId) return;
+        state.snapshot = await invoke("workspace_delete_resource", { resource_id: state.selectedResourceId });
+        state.selectedResourceId = null;
+        state.status = "Resource deleted.";
+        render();
+      }
+
+      async function deleteSelectedAssignment() {
+        if (!state.selectedAssignmentId) return;
+        state.snapshot = await invoke("workspace_delete_assignment", { assignment_id: state.selectedAssignmentId });
+        state.selectedAssignmentId = null;
+        state.status = "Assignment deleted.";
+        render();
+      }
+
+      async function deleteSelectedCalendar() {
+        if (!state.selectedCalendarId) return;
+        state.snapshot = await invoke("workspace_delete_calendar", { calendar_id: state.selectedCalendarId });
+        state.selectedCalendarId = null;
+        state.status = "Calendar deleted.";
+        render();
+      }
+
+      async function toggleSelectedTaskMilestone() {
+        const task = selectedTask();
+        if (!task) return;
         const payload = {
-          id: projectId,
+          id: task.id,
+          project_id: task.project_id,
+          parent_task_id: task.parent_task_id,
+          name: task.name,
+          description: task.description,
+          start_date: task.start_date,
+          finish_date: task.finish_date,
+          duration_hours: task.duration_hours,
+          work_hours: task.work_hours,
+          percent_complete: task.percent_complete,
+          milestone: !task.milestone,
+          constraint_type: task.constraint_type,
+          calendar_id: task.calendar_id,
+          notes: task.notes,
+          sort_order: task.sort_order,
+        };
+        state.snapshot = await invoke("workspace_upsert_task", { input: payload });
+        state.status = "Task milestone toggled.";
+        render();
+      }
+
+      async function saveProject(event) {
+        event.preventDefault();
+        const payload = {
+          id: state.editingProjectId,
           name: $("projectName").value,
           description: $("projectDescription").value || null,
+          manager: null,
+          status: $("projectStatus").value,
+          priority: Number($("projectPriority").value || 500),
+          calendar_id: null,
           start_date: $("projectStart").value || null,
           finish_date: $("projectFinish").value || null,
+          notes: $("projectNotes").value || null,
         };
         state.snapshot = await invoke("workspace_upsert_project", { input: payload });
-        state.selectedProjectId = projectId || state.snapshot.projects[state.snapshot.projects.length - 1]?.id || state.selectedProjectId;
+        state.selectedProjectId = state.snapshot.projects[state.snapshot.projects.length - 1]?.id || state.selectedProjectId;
         state.editingProjectId = null;
-        $("projectForm").reset();
         state.status = `Project saved: ${payload.name}`;
         render();
       }
 
-      async function submitTask(event) {
+      async function saveTask(event) {
         event.preventDefault();
         if (!state.selectedProjectId) {
-          state.status = "Choose a project before creating tasks.";
-          render();
+          notify("Choose a project before creating tasks.");
           return;
         }
-        const taskId = state.editingTaskId;
         const payload = {
-          id: taskId,
+          id: state.editingTaskId,
           project_id: state.selectedProjectId,
+          parent_task_id: $("taskParent").value || null,
           name: $("taskName").value,
           description: null,
           start_date: $("taskStart").value || null,
           finish_date: $("taskFinish").value || null,
+          duration_hours: Number($("taskDuration").value || 8),
+          work_hours: null,
           percent_complete: Number($("taskPercent").value || 0),
-          parent_task_id: null,
+          milestone: false,
+          constraint_type: $("taskConstraint").value,
+          calendar_id: $("taskCalendar").value || null,
+          notes: $("taskNotes").value || null,
           sort_order: Number($("taskSortOrder").value || 0),
         };
         state.snapshot = await invoke("workspace_upsert_task", { input: payload });
         state.editingTaskId = null;
-        $("taskForm").reset();
-        $("taskPercent").value = "0";
-        $("taskSortOrder").value = "0";
         state.status = `Task saved: ${payload.name}`;
         render();
       }
 
-      async function submitDependency(event) {
+      async function saveDependency(event) {
         event.preventDefault();
         if (!state.selectedProjectId) {
-          state.status = "Choose a project before creating dependencies.";
-          render();
+          notify("Choose a project before creating links.");
           return;
         }
         const payload = {
@@ -883,39 +2699,18 @@
           project_id: state.selectedProjectId,
           predecessor_task_id: $("dependencyPredecessor").value,
           successor_task_id: $("dependencySuccessor").value,
-          relation: "FS",
+          relation: $("dependencyRelation").value,
+          lag_hours: Number($("dependencyLag").value || 0),
         };
         state.snapshot = await invoke("workspace_upsert_dependency", { input: payload });
-        $("dependencyForm").reset();
         state.status = "Dependency saved.";
         render();
       }
 
-      async function submitCalendar(event) {
+      async function saveResource(event) {
         event.preventDefault();
         if (!state.selectedProjectId) {
-          state.status = "Choose a project before creating calendars.";
-          render();
-          return;
-        }
-        const payload = {
-          id: null,
-          project_id: state.selectedProjectId,
-          name: $("calendarName").value,
-          timezone: $("calendarTimezone").value || null,
-          working_days: null,
-        };
-        state.snapshot = await invoke("workspace_upsert_calendar", { input: payload });
-        $("calendarForm").reset();
-        state.status = `Calendar saved: ${payload.name}`;
-        render();
-      }
-
-      async function submitResource(event) {
-        event.preventDefault();
-        if (!state.selectedProjectId) {
-          state.status = "Choose a project before creating resources.";
-          render();
+          notify("Choose a project before creating resources.");
           return;
         }
         const payload = {
@@ -931,19 +2726,14 @@
           notes: null,
         };
         state.snapshot = await invoke("workspace_upsert_resource", { input: payload });
-        $("resourceForm").reset();
-        $("resourceUnits").value = "100";
-        $("resourceRate").value = "0";
-        $("resourceCost").value = "0";
         state.status = `Resource saved: ${payload.name}`;
         render();
       }
 
-      async function submitAssignment(event) {
+      async function saveAssignment(event) {
         event.preventDefault();
         if (!state.selectedProjectId) {
-          state.status = "Choose a project before creating assignments.";
-          render();
+          notify("Choose a project before creating assignments.");
           return;
         }
         const payload = {
@@ -956,142 +2746,156 @@
           actual_work_hours: 0,
         };
         state.snapshot = await invoke("workspace_upsert_assignment", { input: payload });
-        $("assignmentForm").reset();
-        $("assignmentUnits").value = "100";
-        $("assignmentWork").value = "0";
         state.status = "Assignment saved.";
         render();
       }
 
-      async function recalculateWorkspace() {
-        state.snapshot = await invoke("workspace_recalculate");
-        state.status = "Workspace recalculated.";
+      async function saveCalendar(event) {
+        event.preventDefault();
+        if (!state.selectedProjectId) {
+          notify("Choose a project before creating calendars.");
+          return;
+        }
+        const payload = {
+          id: null,
+          project_id: state.selectedProjectId,
+          name: $("calendarName").value,
+          timezone: $("calendarTimezone").value || null,
+          working_days: null,
+          hours_per_day: Number($("calendarHours").value || 8),
+          working_hours: null,
+          exceptions: null,
+        };
+        state.snapshot = await invoke("workspace_upsert_calendar", { input: payload });
+        state.status = `Calendar saved: ${payload.name}`;
         render();
       }
 
-      async function exportWorkspace() {
-        const json = await invoke("workspace_export_json");
-        $("snapshotView").textContent = json;
-        state.status = "Workspace exported as JSON in the snapshot pane.";
-        $("statusText").textContent = state.status;
-      }
-
-      async function exportWorkspaceXml() {
-        const xml = await invoke("workspace_export_xml");
-        $("snapshotView").textContent = xml;
-        state.status = "Workspace exported as XML in the snapshot pane.";
-        $("statusText").textContent = state.status;
-      }
-
-      async function importWorkspaceJson() {
-        const payload = window.prompt("Paste the workspace JSON to import:");
-        if (!payload) return;
-        state.snapshot = await invoke("workspace_import_json", { json: payload });
-        state.selectedProjectId = pickFirstProjectId(state.snapshot);
-        state.status = "Workspace imported from JSON.";
+      function selectProject(projectId) {
+        state.selectedProjectId = projectId;
+        state.selectedTaskId = null;
+        state.selectedDependencyId = null;
+        state.selectedResourceId = null;
+        state.selectedCalendarId = null;
+        state.editingProjectId = projectId;
         render();
       }
 
-      async function importWorkspaceXml() {
-        const payload = window.prompt("Paste the workspace XML to import:");
-        if (!payload) return;
-        state.snapshot = await invoke("workspace_import_xml", { xml: payload });
-        state.selectedProjectId = pickFirstProjectId(state.snapshot);
-        state.status = "Workspace imported from XML.";
+      function selectTask(taskId) {
+        const task = state.snapshot.tasks.find((item) => item.id === taskId);
+        if (!task) return;
+        state.selectedTaskId = taskId;
+        state.editingTaskId = taskId;
+        state.selectedDependencyId = null;
         render();
+      }
+
+      function selectDependency(dependencyId) {
+        state.selectedDependencyId = dependencyId;
+        state.selectedTaskId = null;
+        state.selectedResourceId = null;
+        state.selectedCalendarId = null;
+        render();
+      }
+
+      function selectResource(resourceId) {
+        state.selectedResourceId = resourceId;
+        state.selectedTaskId = null;
+        state.selectedDependencyId = null;
+        render();
+      }
+
+      function selectCalendar(calendarId) {
+        state.selectedCalendarId = calendarId;
+        state.selectedTaskId = null;
+        state.selectedDependencyId = null;
+        render();
+      }
+
+      function setSelectedAssignment(id) {
+        state.selectedAssignmentId = id;
+        state.selectedTaskId = null;
+        render();
+      }
+
+      function getActionLabelFromNode(node) {
+        return node?.getAttribute?.("data-ribbon-action") || "";
       }
 
       async function handleAction(event) {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return;
 
-        const selectProjectId = target.dataset.selectProject;
+        const view = target.dataset.view;
+        const openProjectId = target.dataset.openProject;
         const editProjectId = target.dataset.editProject;
-        const deleteProjectId = target.dataset.deleteProject;
-        const editTaskId = target.dataset.editTask;
-        const deleteTaskId = target.dataset.deleteTask;
-        const deleteDependencyId = target.dataset.deleteDependency;
-        const deleteCalendarId = target.dataset.deleteCalendar;
-        const deleteResourceId = target.dataset.deleteResource;
-        const deleteAssignmentId = target.dataset.deleteAssignment;
+        const taskRowId = target.dataset.taskRow;
+        const ganttTaskId = target.dataset.taskGantt;
+        const dependencyRowId = target.dataset.dependencyRow;
+        const resourceRowId = target.dataset.resourceRow;
+        const calendarRowId = target.dataset.calendarRow;
+        const assignmentRowId = target.dataset.assignmentRow;
+        const menuTab = target.dataset.menuTab;
+        const actionLabel = target.dataset.ribbonAction;
 
-        if (selectProjectId) {
-          state.selectedProjectId = selectProjectId;
-          state.status = "Project opened.";
+        if (menuTab) {
+          state.activeTab = menuTab;
           render();
+          return;
+        }
+
+        if (view) {
+          switchView(view);
+          return;
+        }
+
+        if (openProjectId) {
+          selectProject(openProjectId);
+          state.status = "Project opened.";
           return;
         }
 
         if (editProjectId) {
-          const project = state.snapshot.projects.find((item) => item.id === editProjectId);
-          if (!project) return;
-          state.editingProjectId = project.id;
-          $("projectName").value = project.name || "";
-          $("projectDescription").value = project.description || "";
-          $("projectStart").value = project.start_date || "";
-          $("projectFinish").value = project.finish_date || "";
-          state.selectedProjectId = project.id;
+          selectProject(editProjectId);
           state.status = "Editing project.";
-          render();
           return;
         }
 
-        if (deleteProjectId) {
-          state.snapshot = await invoke("workspace_delete_project", { project_id: deleteProjectId });
-          if (state.selectedProjectId === deleteProjectId) {
-            state.selectedProjectId = pickFirstProjectId(state.snapshot);
-          }
-          state.status = "Project deleted.";
-          render();
+        if (taskRowId || ganttTaskId) {
+          selectTask(taskRowId || ganttTaskId);
+          state.status = "Task selected.";
           return;
         }
 
-        if (deleteTaskId) {
-          state.snapshot = await invoke("workspace_delete_task", { task_id: deleteTaskId });
-          state.status = "Task deleted.";
-          render();
+        if (dependencyRowId) {
+          selectDependency(dependencyRowId);
+          state.status = "Dependency selected.";
           return;
         }
 
-        if (editTaskId) {
-          const task = state.snapshot.tasks.find((item) => item.id === editTaskId);
-          if (!task) return;
-          state.editingTaskId = task.id;
-          $("taskName").value = task.name || "";
-          $("taskStart").value = task.start_date || "";
-          $("taskFinish").value = task.finish_date || "";
-          $("taskPercent").value = String(task.percent_complete || 0);
-          $("taskSortOrder").value = String(task.sort_order || 0);
-          state.selectedProjectId = task.project_id;
-          state.status = "Editing task.";
-          render();
+        if (resourceRowId) {
+          selectResource(resourceRowId);
+          state.status = "Resource selected.";
           return;
         }
 
-        if (deleteDependencyId) {
-          state.snapshot = await invoke("workspace_delete_dependency", { dependency_id: deleteDependencyId });
-          state.status = "Dependency deleted.";
-          render();
+        if (calendarRowId) {
+          selectCalendar(calendarRowId);
+          state.status = "Calendar selected.";
           return;
         }
 
-        if (deleteCalendarId) {
-          state.snapshot = await invoke("workspace_delete_calendar", { calendar_id: deleteCalendarId });
-          state.status = "Calendar deleted.";
-          render();
+        if (assignmentRowId) {
+          setSelectedAssignment(assignmentRowId);
+          state.status = "Assignment selected.";
           return;
         }
 
-        if (deleteResourceId) {
-          state.snapshot = await invoke("workspace_delete_resource", { resource_id: deleteResourceId });
-          state.status = "Resource deleted.";
-          render();
-          return;
-        }
-
-        if (deleteAssignmentId) {
-          state.snapshot = await invoke("workspace_delete_assignment", { assignment_id: deleteAssignmentId });
-          state.status = "Assignment deleted.";
+        const action = Object.values(ribbonActions)
+          .flatMap((groups) => groups.flatMap((group) => group.buttons))
+          .find((button) => button.label === actionLabel);
+        if (action) {
+          await action.action();
           render();
           return;
         }
@@ -1107,23 +2911,42 @@
       }
 
       $("refreshBtn").addEventListener("click", refresh);
-      $("projectForm").addEventListener("submit", submitProject);
-      $("taskForm").addEventListener("submit", submitTask);
-      $("dependencyForm").addEventListener("submit", submitDependency);
-      $("calendarForm").addEventListener("submit", submitCalendar);
-      $("resourceForm").addEventListener("submit", submitResource);
-      $("assignmentForm").addEventListener("submit", submitAssignment);
+      $("bridgePingBtn").addEventListener("click", pingJavaBridge);
+      $("bridgeSnapshotBtn").addEventListener("click", snapshotJavaBridge);
+      $("bridgeOpenBtn").addEventListener("click", openBridgeSample);
+      $("bridgeImportBtn").addEventListener("click", importBridgeSample);
+      $("projectForm").addEventListener("submit", saveProject);
+      $("taskForm").addEventListener("submit", saveTask);
+      $("dependencyForm").addEventListener("submit", saveDependency);
+      $("resourceForm").addEventListener("submit", saveResource);
+      $("assignmentForm").addEventListener("submit", saveAssignment);
+      $("calendarForm").addEventListener("submit", saveCalendar);
       $("recalcBtn").addEventListener("click", recalculateWorkspace);
-      $("exportBtn").addEventListener("click", exportWorkspace);
-      $("exportXmlBtn").addEventListener("click", exportWorkspaceXml);
-      $("importBtn").addEventListener("click", importWorkspaceJson);
-      $("importXmlBtn").addEventListener("click", importWorkspaceXml);
+      $("baselineBtn").addEventListener("click", captureBaseline);
+      $("newProjectBtn").addEventListener("click", startNewProject);
+      $("newTaskBtn").addEventListener("click", startNewTask);
+      $("newDependencyBtn").addEventListener("click", () => notify("Choose predecessor and successor, then save the link."));
+      $("deleteProjectBtn").addEventListener("click", deleteSelectedProject);
+      $("deleteTaskBtn").addEventListener("click", deleteSelectedTask);
+      $("deleteDependencyBtn").addEventListener("click", deleteSelectedDependency);
+      $("deleteResourceBtn").addEventListener("click", deleteSelectedResource);
+      $("deleteAssignmentBtn").addEventListener("click", deleteSelectedAssignment);
+      $("deleteCalendarBtn").addEventListener("click", deleteSelectedCalendar);
+      $("zoomSelect").addEventListener("change", (event) => setZoom(event.target.value));
+      $("filterSelect").addEventListener("change", (event) => {
+        state.filter = event.target.value;
+        render();
+      });
+      $("sortSelect").addEventListener("change", (event) => {
+        state.sort = event.target.value;
+        render();
+      });
       document.body.addEventListener("click", handleAction);
 
       refresh().catch((error) => {
         console.error(error);
         state.status = error.message || String(error);
-        $("statusText").textContent = state.status;
+        renderStatus();
       });
     </script>
   </body>

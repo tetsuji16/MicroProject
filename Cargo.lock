@@ -2161,6 +2161,7 @@ dependencies = [
 name = "projectlibre_tauri"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "chrono",
  "dirs",
  "projectlibre_tauri_backend",
