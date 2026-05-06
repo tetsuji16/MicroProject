@@ -1,23 +1,43 @@
-# ProjectLibre Rewrite Scaffold
+# MicroProject Viewer
 
-This directory contains the Rust + Tauri application scaffold for MicroProject.
+This directory contains the active Rust desktop viewer for Microsoft Project XML files.
 
-## What It Does Today
+## Preview
 
-- Stores workspace state locally as JSON through the Rust backend crate.
-- Exposes Tauri commands for project, task, dependency, resource, assignment, and calendar CRUD.
-- Supports XML import/export for workspace interchange.
-- Keeps the frontend simple, but it now supports create, edit, delete, import, export, and recalculation flows.
+![MicroProject showcase](./frontend/demo-showcase.png)
 
-## Build
+## What It Does
+
+- Opens Project XML files and renders a split task table and Gantt chart in `egui`.
+- Parses the project header, calendars, tasks, predecessor links, and baseline fields into a forgiving view model.
+- Uses native Rust crates for file dialogs, XML parsing, table layout, and rendering.
+- Shows dependency lines and progress visuals directly on the chart so schedule structure is easy to read.
+
+## Showcase Sample
+
+- [`testdata/demo-showcase.xml`](./testdata/demo-showcase.xml) is a polished sample project with:
+  - summary tasks
+  - chained dependencies
+  - milestones
+  - progress percentages
+  - baseline dates for visual comparison
+
+Open it with:
+
+```powershell
+cargo run -- ".\testdata\demo-showcase.xml"
+```
+
+## Build And Run
 
 ```powershell
 cd projectlibre-tauri
-cargo run
+cargo run -- "C:\path\to\project.xml"
 ```
 
 ## Notes
 
-- The domain and persistence logic now lives in `backend/src/lib.rs`.
-- The Tauri config lives in `src-tauri/tauri.conf.json`.
-- The rewrite still has room to grow into richer ProjectLibre-compatible UI and file formats.
+- The viewer is Windows-first.
+- The XML import is intentionally forgiving: unsupported fields are ignored rather than treated as fatal.
+- The README at the repository root is the best place to explain the polished demo story for GitHub visitors.
+- The legacy Tauri and bridge files are left in the tree only as historical artifacts.

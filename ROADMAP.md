@@ -25,6 +25,7 @@
 - Move stable domain objects from Java into Rust one slice at a time.
 - Port persistence, scheduling, and import/export logic in the order that best preserves compatibility.
 - Keep the Java bridge alive until the Rust replacement is verified against the reference behavior.
+- Start by moving the bridge state, sample discovery, and command routing into Rust, then leave Java as an opt-in fallback.
 
 ## Phase 4 - Frontend Migration
 

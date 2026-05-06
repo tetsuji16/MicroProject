@@ -2398,6 +2398,7 @@
         const summaryParts = [];
         if (bridge.java_executable) summaryParts.push(`java=${bridge.java_executable}`);
         if (bridge.javac_executable) summaryParts.push(`javac=${bridge.javac_executable}`);
+        if (bridge.backend_mode) summaryParts.push(`mode=${bridge.backend_mode}`);
         if (bridge.sample_files) summaryParts.push(`${bridge.sample_files.length} sample .mpp file(s)`);
         if (bridge.opened_project) summaryParts.push(`open=${bridge.opened_project}`);
         if (state.bridgeError) summaryParts.push(`error=${state.bridgeError}`);

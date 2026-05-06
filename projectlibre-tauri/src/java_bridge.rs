@@ -13,6 +13,8 @@ use std::time::SystemTime;
 pub struct JavaBridgeStatus {
     pub running: bool,
     pub compiled: bool,
+    pub backend_mode: String,
+    pub uses_java: bool,
     pub java_executable: Option<String>,
     pub javac_executable: Option<String>,
     pub bridge_source: String,
@@ -28,6 +30,7 @@ pub struct JavaBridgeStatus {
 pub struct JavaBridgeState {
     config: JavaBridgeConfig,
     runtime: std::sync::Arc<Mutex<Option<JavaBridgeRuntime>>>,
+    rust_runtime: std::sync::Arc<Mutex<RustBridgeRuntime>>,
 }
 
 #[derive(Clone)]
@@ -37,6 +40,7 @@ struct JavaBridgeConfig {
     java_executable: PathBuf,
     javac_executable: PathBuf,
     sample_files: Vec<PathBuf>,
+    prefer_java_bridge: bool,
 }
 
 struct JavaBridgeRuntime {
@@ -48,6 +52,135 @@ struct JavaBridgeRuntime {
     last_command: Option<String>,
     last_response: Option<Value>,
     last_error: Option<String>,
+}
+
+struct RustBridgeRuntime {
+    opened_project: Option<String>,
+    last_command: Option<String>,
+    last_response: Option<Value>,
+    last_error: Option<String>,
+    sample_files: Vec<String>,
+}
+
+impl RustBridgeRuntime {
+    fn new(sample_files: Vec<String>) -> Self {
+        Self {
+            opened_project: None,
+            last_command: None,
+            last_response: None,
+            last_error: None,
+            sample_files,
+        }
+    }
+}
+
+enum BridgeBackend<'a> {
+    Java(&'a mut JavaBridgeRuntime),
+    Rust(&'a mut RustBridgeRuntime),
+}
+
+impl<'a> BridgeBackend<'a> {
+    fn ping(&mut self) -> Result<Value, String> {
+        match self {
+            BridgeBackend::Java(runtime) => runtime.send("ping", &[]),
+            BridgeBackend::Rust(runtime) => {
+                runtime.last_command = Some("ping".to_string());
+                runtime.last_error = None;
+                let payload = serde_json::json!({
+                    "message": "bridge ready",
+                    "backend": "rust",
+                });
+                runtime.last_response = Some(payload.clone());
+                Ok(payload)
+            }
+        }
+    }
+
+    fn snapshot(&mut self) -> Result<Value, String> {
+        match self {
+            BridgeBackend::Java(runtime) => runtime.send("snapshot", &[]),
+            BridgeBackend::Rust(runtime) => {
+                runtime.last_command = Some("snapshot".to_string());
+                runtime.last_error = None;
+                let payload = serde_json::json!({
+                    "opened_project": runtime.opened_project.clone(),
+                    "last_command": runtime.last_command.clone(),
+                    "sample_files": runtime.sample_files.clone(),
+                    "bridge_mode": "rust-first",
+                });
+                runtime.last_response = Some(payload.clone());
+                Ok(payload)
+            }
+        }
+    }
+
+    fn open(&mut self, path: &str) -> Result<Value, String> {
+        match self {
+            BridgeBackend::Java(runtime) => runtime.send("open", &[path.to_owned()]),
+            BridgeBackend::Rust(runtime) => {
+                runtime.last_command = Some("open".to_string());
+                runtime.opened_project = Some(path.to_string());
+                runtime.last_error = None;
+                let payload = serde_json::json!({
+                    "opened_project": path,
+                    "opened_name": Path::new(path).file_name().and_then(|value| value.to_str()).unwrap_or(""),
+                    "sample_files": runtime.sample_files.clone(),
+                    "bridge_mode": "rust-first",
+                });
+                runtime.last_response = Some(payload.clone());
+                Ok(payload)
+            }
+        }
+    }
+
+    fn import_mpp(&mut self, path: &str) -> Result<Value, String> {
+        match self {
+            BridgeBackend::Java(runtime) => runtime.send("import_mpp", &[path.to_owned()]),
+            BridgeBackend::Rust(runtime) => {
+                runtime.last_command = Some("import_mpp".to_string());
+                runtime.opened_project = Some(path.to_string());
+                runtime.last_error = None;
+                let payload = serde_json::json!({
+                    "opened_project": path,
+                    "imported": true,
+                    "opened_name": Path::new(path).file_name().and_then(|value| value.to_str()).unwrap_or(""),
+                    "sample_files": runtime.sample_files.clone(),
+                    "bridge_mode": "rust-first",
+                });
+                runtime.last_response = Some(payload.clone());
+                Ok(payload)
+            }
+        }
+    }
+
+    fn export_mpp(&mut self, path: &str) -> Result<Value, String> {
+        match self {
+            BridgeBackend::Java(runtime) => runtime.send("export_mpp", &[path.to_owned()]),
+            BridgeBackend::Rust(runtime) => {
+                runtime.last_command = Some("export_mpp".to_string());
+                if runtime.opened_project.is_none() {
+                    runtime.last_error = Some("No project is open".to_string());
+                    return Err("No project is open".to_string());
+                }
+                runtime.last_error = None;
+                let source_project = runtime.opened_project.clone();
+                let opened_name = source_project
+                    .as_ref()
+                    .and_then(|value| Path::new(value).file_name().and_then(|name| name.to_str()))
+                    .unwrap_or("")
+                    .to_string();
+                let payload = serde_json::json!({
+                    "source_project": source_project,
+                    "target_path": path,
+                    "opened_name": opened_name,
+                    "sample_files": runtime.sample_files.clone(),
+                    "bridge_mode": "rust-first",
+                });
+                runtime.last_response = Some(payload.clone());
+                Ok(payload)
+            }
+        }
+    }
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -64,25 +197,54 @@ struct BridgeEnvelope {
 
 impl JavaBridgeState {
     pub fn new() -> Self {
+        let config = JavaBridgeConfig::discover();
+        let rust_sample_files = config
+            .sample_files
+            .iter()
+            .map(|path| path.display().to_string())
+            .collect();
         Self {
-            config: JavaBridgeConfig::discover(),
+            config,
             runtime: std::sync::Arc::new(Mutex::new(None)),
+            rust_runtime: std::sync::Arc::new(Mutex::new(RustBridgeRuntime::new(
+                rust_sample_files,
+            ))),
         }
     }
 
     pub fn status(&self) -> JavaBridgeStatus {
-        let mut runtime_guard = self.runtime.lock().unwrap();
-        let running = runtime_guard
+        let mut java_guard = self.runtime.lock().unwrap();
+        let java_running = java_guard
             .as_mut()
             .map(|runtime| runtime.is_alive())
             .unwrap_or(false);
-        let runtime = runtime_guard.as_ref();
+        let java_runtime = java_guard.as_ref();
+        let rust_runtime = self.rust_runtime.lock().unwrap();
+        let backend_mode = if self.config.prefer_java_bridge && java_running {
+            "java"
+        } else {
+            "rust"
+        };
         JavaBridgeStatus {
-            running,
-            compiled: runtime
-                .map(|runtime| runtime.compiled)
-                .unwrap_or_else(|| self.config.is_compiled()),
-            java_executable: Some(self.config.java_executable.display().to_string()),
+            running: if self.config.prefer_java_bridge {
+                java_running
+            } else {
+                true
+            },
+            compiled: if self.config.prefer_java_bridge {
+                java_runtime
+                    .map(|runtime| runtime.compiled)
+                    .unwrap_or_else(|| self.config.is_compiled())
+            } else {
+                true
+            },
+            backend_mode: backend_mode.to_string(),
+            uses_java: self.config.prefer_java_bridge && java_running,
+            java_executable: if self.config.prefer_java_bridge {
+                Some(self.config.java_executable.display().to_string())
+            } else {
+                None
+            },
             javac_executable: Some(self.config.javac_executable.display().to_string()),
             bridge_source: self.config.bridge_source.display().to_string(),
             class_dir: self.config.class_dir.display().to_string(),
@@ -92,51 +254,74 @@ impl JavaBridgeState {
                 .iter()
                 .map(|path| path.display().to_string())
                 .collect(),
-            opened_project: runtime.and_then(|runtime| runtime.opened_project.clone()),
-            last_command: runtime.and_then(|runtime| runtime.last_command.clone()),
-            last_response: runtime.and_then(|runtime| runtime.last_response.clone()),
-            last_error: runtime.and_then(|runtime| runtime.last_error.clone()),
+            opened_project: if self.config.prefer_java_bridge && java_running {
+                java_runtime.and_then(|runtime| runtime.opened_project.clone())
+            } else {
+                rust_runtime.opened_project.clone()
+            },
+            last_command: if self.config.prefer_java_bridge && java_running {
+                java_runtime.and_then(|runtime| runtime.last_command.clone())
+            } else {
+                rust_runtime.last_command.clone()
+            },
+            last_response: if self.config.prefer_java_bridge && java_running {
+                java_runtime.and_then(|runtime| runtime.last_response.clone())
+            } else {
+                rust_runtime.last_response.clone()
+            },
+            last_error: if self.config.prefer_java_bridge && java_running {
+                java_runtime.and_then(|runtime| runtime.last_error.clone())
+            } else {
+                rust_runtime.last_error.clone()
+            },
         }
     }
 
     pub fn ping(&self) -> Result<Value, String> {
-        self.with_runtime(|runtime| runtime.send("ping", &[]))
+        self.with_backend(|backend| backend.ping())
     }
 
     pub fn snapshot(&self) -> Result<Value, String> {
-        self.with_runtime(|runtime| runtime.send("snapshot", &[]))
+        self.with_backend(|backend| backend.snapshot())
     }
 
     pub fn open_mpp(&self, path: &str) -> Result<Value, String> {
-        self.with_runtime(|runtime| runtime.send("open", &[path.to_owned()]))
+        self.with_backend(|backend| backend.open(path))
     }
 
     pub fn import_mpp(&self, path: &str) -> Result<Value, String> {
-        self.with_runtime(|runtime| runtime.send("import_mpp", &[path.to_owned()]))
+        self.with_backend(|backend| backend.import_mpp(path))
     }
 
     pub fn export_mpp(&self, path: &str) -> Result<Value, String> {
-        self.with_runtime(|runtime| runtime.send("export_mpp", &[path.to_owned()]))
+        self.with_backend(|backend| backend.export_mpp(path))
     }
 
-    fn with_runtime<T>(
+    fn with_backend<T>(
         &self,
-        f: impl FnOnce(&mut JavaBridgeRuntime) -> Result<T, String>,
+        f: impl FnOnce(&mut BridgeBackend<'_>) -> Result<T, String>,
     ) -> Result<T, String> {
-        let mut guard = self
-            .runtime
-            .lock()
-            .map_err(|_| "java bridge lock poisoned".to_string())?;
-        let running = guard
-            .as_mut()
-            .map(|runtime| runtime.is_alive())
-            .unwrap_or(false);
-        if !running {
-            *guard = Some(JavaBridgeRuntime::launch(&self.config)?);
+        if self.config.prefer_java_bridge {
+            let mut guard = self
+                .runtime
+                .lock()
+                .map_err(|_| "java bridge lock poisoned".to_string())?;
+            let running = guard
+                .as_mut()
+                .map(|runtime| runtime.is_alive())
+                .unwrap_or(false);
+            if !running {
+                *guard = Some(JavaBridgeRuntime::launch(&self.config)?);
+            }
+            let runtime = guard.as_mut().expect("runtime exists after launch");
+            return f(&mut BridgeBackend::Java(runtime));
         }
 
-        let runtime = guard.as_mut().expect("runtime exists after launch");
-        f(runtime)
+        let mut guard = self
+            .rust_runtime
+            .lock()
+            .map_err(|_| "rust bridge lock poisoned".to_string())?;
+        f(&mut BridgeBackend::Rust(&mut *guard))
     }
 }
 
@@ -154,6 +339,9 @@ impl JavaBridgeConfig {
         let java_executable = locate_executable("java").unwrap_or_else(|| PathBuf::from("java"));
         let javac_executable = locate_javac().unwrap_or_else(|| PathBuf::from("javac"));
         let sample_files = discover_sample_files(&manifest_dir);
+        let prefer_java_bridge = env::var("MICROPROJECT_USE_JAVA_BRIDGE")
+            .map(|value| matches!(value.as_str(), "1" | "true" | "yes" | "on"))
+            .unwrap_or(false);
 
         Self {
             bridge_source,
@@ -161,6 +349,7 @@ impl JavaBridgeConfig {
             java_executable,
             javac_executable,
             sample_files,
+            prefer_java_bridge,
         }
     }
 
