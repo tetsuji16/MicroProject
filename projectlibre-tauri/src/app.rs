@@ -1914,6 +1914,7 @@ impl GanttApp {
             &mut self.chart_interaction,
             &mut chart_task_editor_refresh,
             &mut self.dependency_picker,
+            &mut self.status,
         );
         self.sheet_selection_dragging = sheet_selection_dragging;
         if pending_selection != previous_selection {
@@ -2403,6 +2404,39 @@ impl GanttApp {
                             ui.add_space(4.0);
 
                             Self::detail_card(ui, "関連タスク", |ui| {
+                                let relation_badge = |text: &str, fill: Color32, text_color: Color32| {
+                                    RichText::new(text)
+                                        .color(text_color)
+                                        .background_color(fill)
+                                        .strong()
+                                };
+                                let dependency_line = |ui: &mut egui::Ui,
+                                                       from: &str,
+                                                       relation: &str,
+                                                       to: &str,
+                                                       lag: Option<&String>| {
+                                    ui.horizontal_wrapped(|ui| {
+                                        ui.label(
+                                            RichText::new("•")
+                                                .color(Color32::from_rgb(115, 115, 115)),
+                                        );
+                                        ui.label(RichText::new(from).strong());
+                                        ui.label(RichText::new("→").color(SUBTEXT));
+                                        ui.label(RichText::new(to).strong());
+                                        ui.label(relation_badge(
+                                            relation,
+                                            ACCENT_SOFT,
+                                            ACCENT,
+                                        ));
+                                        if let Some(lag) = lag {
+                                            ui.label(
+                                                RichText::new(format!("lag {}", lag))
+                                                    .color(SUBTEXT),
+                                            );
+                                        }
+                                    });
+                                };
+
                                 let predecessors = document
                                     .dependencies
                                     .iter()
@@ -2413,17 +2447,29 @@ impl GanttApp {
                                     })
                                     .take(8)
                                     .collect::<Vec<_>>();
-                                ui.label(RichText::new("先行タスク").strong());
+                                ui.horizontal(|ui| {
+                                    ui.label(
+                                        relation_badge(
+                                            "先行",
+                                            Color32::from_rgb(232, 241, 252),
+                                            ACCENT,
+                                        ),
+                                    );
+                                    ui.label(RichText::new("タスク").strong());
+                                });
                                 if predecessors.is_empty() {
                                     ui.label(
                                         RichText::new("先行タスクはありません").color(SUBTEXT),
                                     );
                                 } else {
                                     for (dep, pred) in predecessors {
-                                        ui.label(format!(
-                                            "{} {} (lag {:?})",
-                                            pred.name, dep.relation, dep.lag_text
-                                        ));
+                                        dependency_line(
+                                            ui,
+                                            &pred.name,
+                                            &dep.relation,
+                                            &task.name,
+                                            dep.lag_text.as_ref(),
+                                        );
                                     }
                                 }
 
@@ -2439,18 +2485,29 @@ impl GanttApp {
                                     })
                                     .take(8)
                                     .collect::<Vec<_>>();
-                                ui.label(RichText::new("後続タスク").strong());
+                                ui.horizontal(|ui| {
+                                    ui.label(
+                                        relation_badge(
+                                            "後続",
+                                            Color32::from_rgb(237, 245, 231),
+                                            OFFICE_GREEN_DARK,
+                                        ),
+                                    );
+                                    ui.label(RichText::new("タスク").strong());
+                                });
                                 if successors.is_empty() {
                                     ui.label(
                                         RichText::new("後続タスクはありません").color(SUBTEXT),
                                     );
                                 } else {
                                     for (dep, succ) in successors {
-                                        ui.label(format!(
-                                            "{} {} (lag {:?})",
-                                            task.name, dep.relation, dep.lag_text
-                                        ));
-                                        ui.label(format!("  -> {}", succ.name));
+                                        dependency_line(
+                                            ui,
+                                            &task.name,
+                                            &dep.relation,
+                                            &succ.name,
+                                            dep.lag_text.as_ref(),
+                                        );
                                     }
                                 }
                             });
@@ -2509,6 +2566,7 @@ impl GanttApp {
         chart_interaction: &mut Option<ChartInteractionState>,
         chart_task_editor_refresh: &mut bool,
         dependency_picker: &mut Option<DependencyPickerState>,
+        status: &mut String,
     ) -> Option<usize> {
         let pointer_position = ui.input(|input| input.pointer.interact_pos());
         Self::apply_active_chart_drag_preview(
@@ -2517,6 +2575,12 @@ impl GanttApp {
             pointer_position,
             zoom_px_per_day,
         );
+        let active_drag_task_uid = chart_interaction.as_ref().and_then(|state| {
+            match state.kind {
+                ChartInteractionKind::Task { task_uid, .. } => Some(task_uid),
+                ChartInteractionKind::Dependency { .. } => None,
+            }
+        });
         let range = document.chart_range();
         let fixed_columns_width = 42.0 + 180.0 + 72.0 + 92.0 + 92.0 + 74.0 + 122.0;
         let chart_content_width = (range.days() as f32 * zoom_px_per_day).max(360.0);
@@ -3284,6 +3348,7 @@ impl GanttApp {
                     zoom_px_per_day,
                     row_selected,
                     show_critical_path,
+                    active_drag_task_uid == Some(task.uid),
                 );
                 let chart_drag_active =
                     chart_interaction.is_some() || dependency_picker.is_some();
@@ -3291,13 +3356,17 @@ impl GanttApp {
                     geom.body_rect,
                     ui.id().with(("gantt_body", task.uid)),
                     Sense::click_and_drag(),
-                );
+                )
+                .on_hover_text("ドラッグでタスクを移動");
+                let body_response = body_response.on_hover_cursor(egui::CursorIcon::Grab);
                 let start_handle_response = geom.start_handle_rect.map(|rect| {
                     ui.interact(
                         rect,
                         ui.id().with(("gantt_start_handle", task.uid)),
                         Sense::click_and_drag(),
                     )
+                    .on_hover_text("開始日を変更")
+                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal)
                 });
                 let finish_handle_response = geom.finish_handle_rect.map(|rect| {
                     ui.interact(
@@ -3305,12 +3374,16 @@ impl GanttApp {
                         ui.id().with(("gantt_finish_handle", task.uid)),
                         Sense::click_and_drag(),
                     )
+                    .on_hover_text("終了日を変更")
+                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal)
                 });
                 let link_handle_response = ui.interact(
                     geom.link_handle_rect,
                     ui.id().with(("gantt_link_handle", task.uid)),
                     Sense::click_and_drag(),
-                );
+                )
+                .on_hover_text("依存関係を作成")
+                .on_hover_cursor(egui::CursorIcon::Crosshair);
 
                 if !chart_drag_active {
                     if body_response.double_clicked() || body_response.clicked() {
@@ -3440,6 +3513,7 @@ impl GanttApp {
                 undo_stack,
                 chart_task_editor_refresh,
                 dependency_picker,
+                status,
             );
         }
 
@@ -3450,6 +3524,7 @@ impl GanttApp {
                 &task_by_uid,
                 &document.dependencies,
                 selected_uid,
+                active_drag_task_uid,
             );
 
             for (geom, &task_index) in rects.iter().zip(visible_indices.iter()) {
@@ -4255,6 +4330,7 @@ impl GanttApp {
         undo_stack: &mut Vec<UndoState>,
         chart_task_editor_refresh: &mut bool,
         dependency_picker: &mut Option<DependencyPickerState>,
+        status: &mut String,
     ) {
         let Some(state) = chart_interaction.take() else {
             return;
@@ -4290,6 +4366,7 @@ impl GanttApp {
                     *chart_task_editor_refresh = pending_selection
                         .and_then(|task_index| document.tasks.get(task_index))
                         .is_some_and(|task| task.uid == task_uid);
+                    *status = "タスク位置を更新しました。".to_string();
                 }
             }
             ChartInteractionKind::Dependency {
@@ -4302,10 +4379,12 @@ impl GanttApp {
                     .find(|geometry| geometry.bar_rect.expand2(Vec2::splat(4.0)).contains(pointer))
                     .map(|geometry| geometry.task_uid)
                 else {
+                    *status = "依存先タスクの上でドロップしてください。".to_string();
                     return;
                 };
 
                 if source_task_uid == target_task_uid {
+                    *status = "自己依存は作成できません。".to_string();
                     return;
                 }
 
@@ -4322,6 +4401,7 @@ impl GanttApp {
                 let target_task = &document.tasks[target_task_index];
                 if dependency_exists(document, source_task.uid, target_task.uid) {
                     *dependency_picker = None;
+                    *status = "同じ依存関係がすでにあります。".to_string();
                     return;
                 }
 
@@ -5281,9 +5361,14 @@ fn paint_chart_row_background(
     let today_offset = (today - range.start).num_days();
     if today_offset >= 0 && today_offset <= days {
         let x = rect.left() + today_offset as f32 * px_per_day;
+        let today_band = Rect::from_min_max(
+            Pos2::new((x - 1.0).max(rect.left()), rect.top()),
+            Pos2::new((x + 1.0).min(rect.right()), rect.bottom()),
+        );
+        painter.rect_filled(today_band, 0.0, Color32::from_rgba_unmultiplied(242, 171, 61, 26));
         painter.line_segment(
             [Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
-            Stroke::new(1.5, TODAY),
+            Stroke::new(2.0, TODAY),
         );
     }
 
@@ -5297,17 +5382,26 @@ fn paint_chart_row_background(
                     Pos2::new(x, rect.top()),
                     Pos2::new(x + px_per_day, rect.bottom()),
                 );
-                painter.rect_filled(weekend_rect, 0.0, Color32::from_rgb(244, 242, 236));
+                painter.rect_filled(weekend_rect, 0.0, WEEKEND_BG);
             }
         }
-        let line_color = if day % 7 == 0 {
-            Color32::from_rgb(198, 198, 198)
+        let line_color = if date.day() == 1 {
+            Color32::from_rgb(158, 158, 158)
+        } else if day % 7 == 0 {
+            Color32::from_rgb(188, 188, 188)
         } else {
             Color32::from_rgb(228, 228, 228)
         };
+        let line_width = if date.day() == 1 {
+            1.4
+        } else if day % 7 == 0 {
+            1.2
+        } else {
+            1.0
+        };
         painter.line_segment(
             [Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
-            Stroke::new(1.0, line_color),
+            Stroke::new(line_width, line_color),
         );
     }
 }
@@ -5320,6 +5414,7 @@ fn draw_task_bar(
     px_per_day: f32,
     selected: bool,
     show_critical_path: bool,
+    active_drag_preview: bool,
 ) -> TaskBarGeometry {
     let row_center_y = rect.center().y;
     let start_day = task.start.map(|dt| dt.date()).unwrap_or(range.start);
@@ -5351,10 +5446,19 @@ fn draw_task_bar(
     } else {
         Color32::from_rgb(65, 103, 174)
     };
+    let preview_alpha = if active_drag_preview { 170 } else { 255 };
+    let accent_alpha = if active_drag_preview { 190 } else { 255 };
+    let preview_color = |color: Color32, alpha: u8| {
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), alpha)
+    };
 
     let baseline_rect = task_baseline_rect(task, range, px_per_day, row_center_y, rect.left());
     if let Some(baseline) = baseline_rect {
-        painter.rect_filled(baseline, 0.0, BASELINE);
+        painter.rect_filled(
+            baseline,
+            0.0,
+            preview_color(BASELINE, if active_drag_preview { 190 } else { 255 }),
+        );
     }
 
     let bar_rect = if task.milestone {
@@ -5367,7 +5471,7 @@ fn draw_task_bar(
         ];
         painter.add(egui::Shape::convex_polygon(
             points.to_vec(),
-            base_color,
+            preview_color(base_color, preview_alpha),
             Stroke::new(1.1, if selected { ACCENT } else { base_color }),
         ));
         Rect::from_center_size(center, Vec2::new(14.0, 14.0))
@@ -5376,7 +5480,7 @@ fn draw_task_bar(
             Pos2::new(start_x, row_center_y - 4.0),
             Pos2::new(end_x, row_center_y + 4.0),
         );
-        painter.rect_filled(bar_rect, 1.0, base_color);
+        painter.rect_filled(bar_rect, 1.0, preview_color(base_color, preview_alpha));
         painter.rect_stroke(
             bar_rect,
             1.0,
@@ -5399,7 +5503,11 @@ fn draw_task_bar(
             Pos2::new(start_x, row_center_y - 6.0),
             Pos2::new(end_x, row_center_y + 6.0),
         );
-        painter.rect_filled(bar_rect, 1.0, Color32::from_rgb(227, 232, 242));
+        painter.rect_filled(
+            bar_rect,
+            1.0,
+            preview_color(Color32::from_rgb(227, 232, 242), preview_alpha),
+        );
         painter.rect_filled(
             Rect::from_min_max(
                 bar_rect.left_top(),
@@ -5410,7 +5518,7 @@ fn draw_task_bar(
                 ),
             ),
             2.0,
-            base_color,
+            preview_color(base_color, accent_alpha),
         );
         painter.rect_stroke(
             bar_rect,
@@ -5458,40 +5566,76 @@ fn draw_task_bar(
     );
 
     if let Some(handle_rect) = start_handle_rect {
+        let grip_color = if selected {
+            preview_color(ACCENT, accent_alpha)
+        } else {
+            preview_color(Color32::from_rgb(96, 128, 184), preview_alpha)
+        };
+        painter.rect_filled(
+            Rect::from_center_size(handle_rect.center(), Vec2::new(4.0, 12.0)),
+            1.0,
+            preview_color(Color32::WHITE, preview_alpha),
+        );
+        painter.line_segment(
+            [
+                Pos2::new(handle_rect.center().x, handle_rect.top() + 1.0),
+                Pos2::new(handle_rect.center().x, handle_rect.bottom() - 1.0),
+            ],
+            Stroke::new(1.6, grip_color),
+        );
         painter.circle_filled(
             handle_rect.center(),
             3.1,
-            if selected {
-                ACCENT
-            } else {
-                Color32::from_rgb(96, 128, 184)
-            },
+            grip_color,
         );
     }
     if let Some(handle_rect) = finish_handle_rect {
+        let grip_color = if selected {
+            preview_color(ACCENT, accent_alpha)
+        } else {
+            preview_color(Color32::from_rgb(96, 128, 184), preview_alpha)
+        };
+        painter.rect_filled(
+            Rect::from_center_size(handle_rect.center(), Vec2::new(4.0, 12.0)),
+            1.0,
+            preview_color(Color32::WHITE, preview_alpha),
+        );
+        painter.line_segment(
+            [
+                Pos2::new(handle_rect.center().x, handle_rect.top() + 1.0),
+                Pos2::new(handle_rect.center().x, handle_rect.bottom() - 1.0),
+            ],
+            Stroke::new(1.6, grip_color),
+        );
         painter.circle_filled(
             handle_rect.center(),
             3.1,
-            if selected {
-                ACCENT
-            } else {
-                Color32::from_rgb(96, 128, 184)
-            },
+            grip_color,
         );
     }
+    painter.line_segment(
+        [
+            Pos2::new(bar_rect.right() + 1.5, row_center_y),
+            Pos2::new(link_handle_rect.left() - 2.0, row_center_y),
+        ],
+        Stroke::new(
+            1.0,
+            preview_color(Color32::from_rgb(128, 128, 128), preview_alpha),
+        ),
+    );
     painter.circle_filled(
         link_handle_rect.center(),
         3.2,
         if selected {
-            ACCENT
+            preview_color(ACCENT, accent_alpha)
         } else {
-            Color32::from_rgb(90, 90, 90)
+            preview_color(Color32::from_rgb(90, 90, 90), preview_alpha)
         },
     );
     painter.circle_stroke(
         link_handle_rect.center(),
         3.2,
-        Stroke::new(1.0, Color32::WHITE),
+        Stroke::new(1.0, preview_color(Color32::WHITE, preview_alpha)),
     );
 
     TaskBarGeometry {
@@ -5633,7 +5777,7 @@ fn draw_timescale_header(ui: &mut egui::Ui, rect: Rect, range: ChartRange, px_pe
     painter.rect_stroke(
         rect,
         0.0,
-        Stroke::new(1.0, Color32::from_rgb(128, 128, 128)),
+        Stroke::new(1.0, Color32::from_rgb(118, 124, 132)),
         egui::StrokeKind::Inside,
     );
 
@@ -5650,9 +5794,9 @@ fn draw_timescale_header(ui: &mut egui::Ui, rect: Rect, range: ChartRange, px_pe
         Pos2::new(rect.left(), rect.top() + month_h + week_h),
         rect.max,
     );
-    painter.rect_filled(month_rect, 0.0, Color32::from_rgb(223, 220, 213));
-    painter.rect_filled(week_rect, 0.0, Color32::from_rgb(231, 228, 220));
-    painter.rect_filled(day_rect, 0.0, Color32::from_rgb(248, 247, 243));
+    painter.rect_filled(month_rect, 0.0, Color32::from_rgb(214, 221, 230));
+    painter.rect_filled(week_rect, 0.0, Color32::from_rgb(224, 231, 239));
+    painter.rect_filled(day_rect, 0.0, Color32::from_rgb(247, 249, 252));
 
     let mut month_start = 0;
     let mut week_start = 0;
@@ -5683,11 +5827,11 @@ fn draw_timescale_header(ui: &mut egui::Ui, rect: Rect, range: ChartRange, px_pe
                 egui::Align2::CENTER_CENTER,
                 label,
                 FontId::new(10.5, FontFamily::Proportional),
-                Color32::from_rgb(53, 53, 53),
+                Color32::from_rgb(39, 51, 66),
             );
             painter.line_segment(
                 [Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
-                Stroke::new(1.0, Color32::from_rgb(145, 145, 145)),
+                Stroke::new(1.4, Color32::from_rgb(135, 142, 151)),
             );
             current_month = date.month();
             month_start = day;
@@ -5709,7 +5853,7 @@ fn draw_timescale_header(ui: &mut egui::Ui, rect: Rect, range: ChartRange, px_pe
                 egui::Align2::CENTER_CENTER,
                 label,
                 FontId::new(10.0, FontFamily::Proportional),
-                Color32::from_rgb(64, 64, 64),
+                Color32::from_rgb(54, 64, 78),
             );
             week_start = day;
             current_week = date.iso_week().week();
@@ -5721,12 +5865,19 @@ fn draw_timescale_header(ui: &mut egui::Ui, rect: Rect, range: ChartRange, px_pe
                 Pos2::new(x, rect.top() + month_h + week_h),
                 Pos2::new(x + px_per_day, rect.bottom()),
             );
+            if date.weekday().number_from_monday() >= 6 {
+                painter.rect_filled(
+                    day_rect,
+                    0.0,
+                    Color32::from_rgba_unmultiplied(92, 116, 154, 10),
+                );
+            }
             painter.text(
                 Pos2::new(day_rect.center().x, day_rect.center().y - 3.0),
                 egui::Align2::CENTER_CENTER,
                 label,
                 FontId::new(10.0, FontFamily::Proportional),
-                Color32::from_rgb(48, 48, 48),
+                Color32::from_rgb(34, 44, 58),
             );
 
             let weekday = match date.weekday().number_from_monday() {
@@ -5743,7 +5894,11 @@ fn draw_timescale_header(ui: &mut egui::Ui, rect: Rect, range: ChartRange, px_pe
                 egui::Align2::CENTER_BOTTOM,
                 weekday,
                 FontId::new(8.0, FontFamily::Proportional),
-                Color32::from_rgb(88, 88, 88),
+                if date.weekday().number_from_monday() >= 6 {
+                    Color32::from_rgb(105, 83, 28)
+                } else {
+                    Color32::from_rgb(82, 92, 106)
+                },
             );
         }
     }
@@ -5755,6 +5910,7 @@ fn draw_dependencies(
     task_by_uid: &HashMap<u32, usize>,
     dependencies: &[GanttDependency],
     selected_uid: Option<u32>,
+    active_uid: Option<u32>,
 ) {
     for dependency in dependencies {
         let Some(&pred_index) = task_by_uid.get(&dependency.predecessor_uid) else {
@@ -5766,7 +5922,9 @@ fn draw_dependencies(
         let predecessor = &row_geometries[pred_index];
         let successor = &row_geometries[succ_index];
         let highlighted = selected_uid == Some(dependency.predecessor_uid)
-            || selected_uid == Some(dependency.successor_uid);
+            || selected_uid == Some(dependency.successor_uid)
+            || active_uid == Some(dependency.predecessor_uid)
+            || active_uid == Some(dependency.successor_uid);
 
         let start = Pos2::new(predecessor.end_x, predecessor.center_y);
         let end = Pos2::new(successor.start_x, successor.center_y);
@@ -5777,17 +5935,33 @@ fn draw_dependencies(
             Pos2::new(mid_x, end.y),
             Pos2::new(end.x - 5.0, end.y),
         ];
+        let shadow_color = if highlighted {
+            Color32::from_rgba_unmultiplied(255, 255, 255, 220)
+        } else {
+            Color32::from_rgba_unmultiplied(248, 249, 251, 160)
+        };
         let stroke = Stroke::new(
-            if highlighted { 1.4 } else { 1.0 },
+            if highlighted { 1.6 } else { 1.1 },
             if highlighted {
                 ACCENT
             } else {
-                Color32::from_rgb(96, 96, 96)
+                Color32::from_rgb(90, 98, 110)
             },
         );
         for segment in path.windows(2) {
+            painter.line_segment([segment[0], segment[1]], Stroke::new(stroke.width + 2.0, shadow_color));
+        }
+        for segment in path.windows(2) {
             painter.line_segment([segment[0], segment[1]], stroke);
         }
+        painter.line_segment(
+            [Pos2::new(end.x - 5.0, end.y - 4.0), end],
+            Stroke::new(stroke.width + 1.5, shadow_color),
+        );
+        painter.line_segment(
+            [Pos2::new(end.x - 5.0, end.y + 4.0), end],
+            Stroke::new(stroke.width + 1.5, shadow_color),
+        );
         painter.line_segment([Pos2::new(end.x - 5.0, end.y - 4.0), end], stroke);
         painter.line_segment([Pos2::new(end.x - 5.0, end.y + 4.0), end], stroke);
         let label = if let Some(lag) = &dependency.lag_text {
@@ -5803,7 +5977,7 @@ fn draw_dependencies(
             if highlighted {
                 ACCENT
             } else {
-                Color32::from_rgb(86, 86, 86)
+                Color32::from_rgb(80, 88, 98)
             },
         );
     }
