@@ -1,26 +1,20 @@
 [package]
-name = "projectlibre_tauri"
+name = "microproject"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
 [dependencies]
-tauri = { version = "1" }
 chrono = "0.4"
-dirs = "5"
+dirs = "6"
 eframe = "0.34.1"
 egui_extras = "0.34.1"
 quick-xml = { version = "0.39.2", features = ["serialize", "encoding"] }
+roxmltree = "0.20"
 rfd = "0.17.2"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-uuid = { version = "1", features = ["v4", "serde"] }
-projectlibre_tauri_backend = { path = "backend" }
-roxmltree = "0.20"
-base64 = "0.22"
 
 [build-dependencies]
-tauri-build = { version = "1" }
 
 [dev-dependencies]
 tempfile = "3"

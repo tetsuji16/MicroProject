@@ -964,13 +964,6 @@ impl GanttApp {
         });
         let shift = input.5;
         let ctrl = input.9;
-        let editing_name = matches!(
-            self.sheet_editing_cell,
-            Some(SheetCellSelection {
-                column: SheetColumn::Name,
-                ..
-            })
-        );
 
         if input.8 {
             self.cancel_sheet_editing();
@@ -983,10 +976,6 @@ impl GanttApp {
                 self.begin_sheet_editing();
                 ctx.request_repaint();
             }
-            return;
-        }
-
-        if editing_name && input.4 {
             return;
         }
 
@@ -2325,13 +2314,16 @@ impl GanttApp {
             chart_content_width.max((ui.available_width() - fixed_columns_width).max(420.0));
         let filler_rows = ((ui.available_height() / BODY_ROW_HEIGHT).ceil() as usize).max(12);
         let total_rows = visible_indices.len().max(filler_rows);
-        let visible_task_indices: Vec<usize> = visible_indices.to_vec();
-        let task_by_uid = visible_task_indices
+        let visible_tasks: Vec<&GanttTask> = visible_indices
+            .iter()
+            .map(|&index| &document.tasks[index])
+            .collect();
+        let task_by_uid = visible_tasks
             .iter()
             .enumerate()
-            .map(|(row_index, &task_index)| (document.tasks[task_index].uid, row_index))
+            .map(|(row_index, task)| (task.uid, row_index))
             .collect::<HashMap<_, _>>();
-        let geometry = RefCell::new(Vec::with_capacity(visible_task_indices.len()));
+        let geometry = RefCell::new(Vec::with_capacity(visible_tasks.len()));
         let selected_uid =
             selected_task.and_then(|index| document.tasks.get(index).map(|task| task.uid));
         let editing_cell_value = *editing_cell;
@@ -2542,27 +2534,9 @@ impl GanttApp {
                     );
                     let response = ui.put(
                         edit_rect,
-                        egui::TextEdit::singleline(&mut name)
-                            .frame(egui::Frame::NONE)
-                            .lock_focus(true),
+                        egui::TextEdit::singleline(&mut name).frame(egui::Frame::NONE),
                     );
                     response.request_focus();
-                    if Self::handle_task_name_outline_shortcut(
-                        ui,
-                        document,
-                        index,
-                        name_active,
-                        selection_bounds,
-                        visible_indices,
-                        editing_cell,
-                        undo_stack,
-                        selected_task,
-                        *selected_sheet_column,
-                        *selection_anchor,
-                        dirty,
-                    ) {
-                        ui.ctx().request_repaint();
-                    }
                     if response.changed() {
                         push_undo_state(
                             undo_stack,
@@ -3138,11 +3112,6 @@ impl GanttApp {
                 &document.dependencies,
                 selected_uid,
             );
-            let visible_tasks: Vec<&GanttTask> = visible_task_indices
-                .iter()
-                .map(|&index| &document.tasks[index])
-                .collect();
-            draw_progress_line(ui.painter(), &rects, &visible_tasks, selected_uid);
         }
 
         if pending_selection != selected_task {
@@ -3367,8 +3336,7 @@ impl GanttApp {
                                         let response = if active {
                                             ui.add(
                                                 egui::TextEdit::singleline(&mut name)
-                                                    .desired_width(ui.available_width().max(120.0))
-                                                    .lock_focus(true),
+                                                    .desired_width(ui.available_width().max(120.0)),
                                             )
                                         } else {
                                             ui.add(
@@ -3378,22 +3346,6 @@ impl GanttApp {
                                         };
                                         if active {
                                             response.request_focus();
-                                            if Self::handle_task_name_outline_shortcut(
-                                                ui,
-                                                document,
-                                                index,
-                                                active,
-                                                selection_bounds,
-                                                visible_indices,
-                                                editing_cell,
-                                                undo_stack,
-                                                selected_task,
-                                                *selected_sheet_column,
-                                                *selection_anchor,
-                                                dirty,
-                                            ) {
-                                                ui.ctx().request_repaint();
-                                            }
                                         }
                                         if response.double_clicked() {
                                             pending_selection = Some(index);
@@ -4154,165 +4106,6 @@ impl GanttApp {
             *dragging = false;
         }
     }
-
-    fn handle_task_name_outline_shortcut(
-        ui: &egui::Ui,
-        document: &mut ProjectDocument,
-        index: usize,
-        has_focus: bool,
-        selection_bounds: Option<SheetSelectionBounds>,
-        visible_indices: &[usize],
-        editing_cell: &mut Option<SheetCellSelection>,
-        undo_stack: &mut Vec<UndoState>,
-        selected_task: Option<usize>,
-        selected_sheet_column: SheetColumn,
-        selection_anchor: Option<SheetCellSelection>,
-        dirty: &mut bool,
-    ) -> bool {
-        if !has_focus {
-            return false;
-        }
-
-        let tab_pressed = ui.input(|input| input.key_pressed(egui::Key::Tab));
-        if !tab_pressed {
-            return false;
-        }
-
-        let shift = ui.input(|input| input.modifiers.shift);
-        let delta = if shift { -1 } else { 1 };
-        let selected_task_indices = selection_bounds
-            .filter(|bounds| bounds.start_row != bounds.end_row)
-            .map(|bounds| Self::selected_task_indices_from_bounds(bounds, visible_indices))
-            .filter(|indices| !indices.is_empty() && indices.len() > 1);
-
-        if let Some(task_indices) = selected_task_indices {
-            if Self::outline_delta_would_change_tasks(document, &task_indices, delta) {
-                push_undo_state(
-                    undo_stack,
-                    document,
-                    selected_task,
-                    selected_sheet_column,
-                    selection_anchor,
-                    *dirty,
-                );
-                Self::apply_outline_delta_to_tasks(document, &task_indices, delta);
-                *dirty = true;
-            }
-        } else {
-            let Some(target_level) = Self::task_outline_level_target(document, index, delta) else {
-                *editing_cell = Some(SheetCellSelection {
-                    task_index: index,
-                    column: SheetColumn::Name,
-                });
-                return true;
-            };
-
-            let Some(task) = document.tasks.get(index) else {
-                return true;
-            };
-            let current = task.outline_level.max(1);
-            if target_level != current {
-                push_undo_state(
-                    undo_stack,
-                    document,
-                    selected_task,
-                    selected_sheet_column,
-                    selection_anchor,
-                    *dirty,
-                );
-                if let Some(task) = document.tasks.get_mut(index) {
-                    task.outline_level = target_level;
-                    *dirty = true;
-                }
-            }
-        }
-
-        *editing_cell = Some(SheetCellSelection {
-            task_index: index,
-            column: SheetColumn::Name,
-        });
-        true
-    }
-
-    fn task_outline_level_target(
-        document: &ProjectDocument,
-        index: usize,
-        delta: i32,
-    ) -> Option<u32> {
-        let Some(task) = document.tasks.get(index) else {
-            return None;
-        };
-
-        let current = task.outline_level.max(1);
-        let target = if delta > 0 {
-            let previous_limit = if index == 0 {
-                1
-            } else {
-                document.tasks[index - 1].outline_level.max(1) + 1
-            };
-            (current + 1).min(previous_limit)
-        } else {
-            current.saturating_sub(1).max(1)
-        };
-
-        Some(target)
-    }
-
-    fn selected_task_indices_from_bounds(
-        bounds: SheetSelectionBounds,
-        visible_indices: &[usize],
-    ) -> Vec<usize> {
-        (bounds.start_row..=bounds.end_row)
-            .filter_map(|row_index| visible_indices.get(row_index).copied())
-            .collect()
-    }
-
-    fn apply_outline_delta_to_tasks(
-        document: &mut ProjectDocument,
-        task_indices: &[usize],
-        delta: i32,
-    ) -> bool {
-        if task_indices.is_empty() {
-            return false;
-        }
-
-        let mut changed = false;
-        for &index in task_indices {
-            let Some(task) = document.tasks.get_mut(index) else {
-                continue;
-            };
-            let current = task.outline_level.max(1);
-            let target = if delta > 0 {
-                current.saturating_add(delta as u32)
-            } else {
-                current.saturating_sub(delta.unsigned_abs()).max(1)
-            };
-            if target != current {
-                task.outline_level = target;
-                changed = true;
-            }
-        }
-
-        changed
-    }
-
-    fn outline_delta_would_change_tasks(
-        document: &ProjectDocument,
-        task_indices: &[usize],
-        delta: i32,
-    ) -> bool {
-        task_indices.iter().copied().any(|index| {
-            document.tasks.get(index).is_some_and(|task| {
-                let current = task.outline_level.max(1);
-                let target = if delta > 0 {
-                    current.saturating_add(delta as u32)
-                } else {
-                    current.saturating_sub(delta.unsigned_abs()).max(1)
-                };
-                target != current
-            })
-        })
-    }
 }
 
 fn build_visible_task_indices(
@@ -5033,6 +4826,7 @@ fn draw_task_bar(
         Color32::from_rgb(65, 103, 174)
     };
 
+    let mut baseline_rect = None;
     if let (Some(baseline_start), Some(baseline_finish)) =
         (task.baseline_start, task.baseline_finish)
     {
@@ -5052,9 +4846,10 @@ fn draw_task_bar(
             ),
         );
         painter.rect_filled(baseline, 0.0, BASELINE);
+        baseline_rect = Some(baseline);
     }
 
-    if task.milestone {
+    let bar_rect = if task.milestone {
         let center = Pos2::new(start_x, row_center_y);
         let points = [
             Pos2::new(center.x, center.y - 7.0),
@@ -5067,6 +4862,7 @@ fn draw_task_bar(
             base_color,
             Stroke::new(1.1, if selected { ACCENT } else { base_color }),
         ));
+        Rect::from_center_size(center, Vec2::new(14.0, 14.0))
     } else if task.summary {
         let bar_rect = Rect::from_min_max(
             Pos2::new(start_x, row_center_y - 4.0),
@@ -5089,6 +4885,7 @@ fn draw_task_bar(
             ],
             Stroke::new(1.5, base_color),
         );
+        bar_rect
     } else {
         let bar_rect = Rect::from_min_max(
             Pos2::new(start_x, row_center_y - 6.0),
@@ -5120,7 +4917,17 @@ fn draw_task_bar(
             ),
             egui::StrokeKind::Inside,
         );
+        bar_rect
     };
+
+    draw_progress_actual_line(
+        painter,
+        task,
+        bar_rect,
+        baseline_rect,
+        selected,
+        show_critical_path,
+    );
 
     RowGeometry {
         start_x,
@@ -5137,55 +4944,94 @@ fn progress_point_on_rect(rect: Rect, percent_complete: f32) -> Pos2 {
     )
 }
 
-fn progress_line_point(task: &GanttTask, row: &RowGeometry) -> Option<Pos2> {
+fn draw_inazuma_polyline(painter: &egui::Painter, start: Pos2, end: Pos2, stroke: Stroke) {
+    let path = inazuma_polyline_points(start, end);
+
+    for segment in path.windows(2) {
+        painter.line_segment([segment[0], segment[1]], stroke);
+    }
+}
+
+fn progress_inazuma_endpoints(
+    task: &GanttTask,
+    bar_rect: Rect,
+    baseline_rect: Option<Rect>,
+) -> Option<(Pos2, Pos2)> {
     if task.start.is_none() || task.finish.is_none() {
         return None;
     }
 
-    if task.milestone {
-        return Some(Pos2::new(row.start_x, row.center_y));
-    }
+    let progress = task.percent_complete.clamp(0.0, 100.0);
+    let progress_point = progress_point_on_rect(bar_rect, progress);
+    let anchor = baseline_rect
+        .map(|baseline| progress_point_on_rect(baseline, progress))
+        .unwrap_or_else(|| Pos2::new(bar_rect.left(), bar_rect.center().y - 7.0));
 
-    let width = (row.end_x - row.start_x).max(1.0);
-    let rect = Rect::from_min_max(
-        Pos2::new(row.start_x, row.center_y - 6.0),
-        Pos2::new(row.start_x + width, row.center_y + 6.0),
-    );
-    Some(progress_point_on_rect(rect, task.percent_complete))
+    Some((anchor, progress_point))
 }
 
-fn draw_progress_line(
+fn inazuma_polyline_points(start: Pos2, end: Pos2) -> [Pos2; 6] {
+    let dx = end.x - start.x;
+    let dy = end.y - start.y;
+    let horizontal = (dx.abs() * 0.30).clamp(8.0, 28.0);
+    let vertical = (dy.abs() * 0.28 + 4.0).clamp(4.0, 12.0);
+    let direction = if dx >= 0.0 { 1.0 } else { -1.0 };
+    let y1 = start.y + dy * 0.18 - vertical;
+    let y2 = start.y + dy * 0.38 + vertical * 0.55;
+    let y3 = start.y + dy * 0.62 - vertical * 0.75;
+    let y4 = start.y + dy * 0.82 + vertical * 0.35;
+
+    [
+        start,
+        Pos2::new(start.x + horizontal * 0.45 * direction, y1),
+        Pos2::new(start.x + dx * 0.34, y2),
+        Pos2::new(start.x + dx * 0.58, y3),
+        Pos2::new(end.x - horizontal * 0.45 * direction, y4),
+        end,
+    ]
+}
+
+fn draw_progress_actual_line(
     painter: &egui::Painter,
-    row_geometries: &[RowGeometry],
-    visible_tasks: &[&GanttTask],
-    selected_uid: Option<u32>,
+    task: &GanttTask,
+    bar_rect: Rect,
+    baseline_rect: Option<Rect>,
+    selected: bool,
+    show_critical_path: bool,
 ) {
-    let mut points = Vec::with_capacity(row_geometries.len());
-    let mut selected_point = None;
-
-    for (task, row) in visible_tasks.iter().zip(row_geometries.iter()) {
-        let Some(point) = progress_line_point(task, row) else {
-            continue;
-        };
-        if selected_uid == Some(task.uid) {
-            selected_point = Some(point);
-        }
-        points.push(point);
-    }
-
-    if points.len() < 2 {
+    if task.start.is_none() || task.finish.is_none() {
         return;
     }
 
-    let halo = Stroke::new(3.0, Color32::from_rgba_unmultiplied(255, 255, 255, 180));
-    let stroke = Stroke::new(1.7, Color32::from_rgb(239, 0, 0));
-    painter.add(egui::Shape::line(points.clone(), halo));
-    painter.add(egui::Shape::line(points, stroke));
+    let Some((anchor, progress_point)) = progress_inazuma_endpoints(task, bar_rect, baseline_rect)
+    else {
+        return;
+    };
+    let progress = task.percent_complete.clamp(0.0, 100.0);
+    let is_critical = task.critical && show_critical_path;
+    let stroke_color = if selected {
+        ACCENT
+    } else if is_critical {
+        CRITICAL
+    } else {
+        Color32::from_rgb(160, 94, 26)
+    };
+    let stroke = Stroke::new(if selected { 1.8 } else { 1.2 }, stroke_color);
 
-    if let Some(point) = selected_point {
-        painter.circle_filled(point, 3.4, ACCENT);
-        painter.circle_stroke(point, 3.4, Stroke::new(0.9, Color32::WHITE));
+    if (anchor.x - progress_point.x).abs() > 0.5 || (anchor.y - progress_point.y).abs() > 0.5 {
+        draw_inazuma_polyline(painter, anchor, progress_point, stroke);
     }
+
+    painter.circle_filled(
+        progress_point,
+        if progress >= 100.0 { 2.8 } else { 2.5 },
+        stroke_color,
+    );
+    painter.circle_stroke(
+        progress_point,
+        if progress >= 100.0 { 2.8 } else { 2.5 },
+        Stroke::new(0.8, Color32::WHITE),
+    );
 }
 
 fn draw_timescale_header(ui: &mut egui::Ui, rect: Rect, range: ChartRange, px_per_day: f32) {
@@ -5732,83 +5578,6 @@ mod tests {
     }
 
     #[test]
-    fn task_outline_level_target_respects_previous_row_limit() {
-        let mut first = sample_task(1, 1, "Task A");
-        first.outline_level = 1;
-        let mut second = sample_task(2, 2, "Task B");
-        second.outline_level = 3;
-        let document = ProjectDocument {
-            name: "Demo".to_string(),
-            title: None,
-            manager: None,
-            start_date: None,
-            finish_date: None,
-            calendars: vec![],
-            tasks: vec![first, second],
-            dependencies: vec![],
-        };
-
-        assert_eq!(
-            GanttApp::task_outline_level_target(&document, 1, 1),
-            Some(2)
-        );
-        assert_eq!(
-            GanttApp::task_outline_level_target(&document, 1, -1),
-            Some(2)
-        );
-        assert_eq!(
-            GanttApp::task_outline_level_target(&document, 0, -1),
-            Some(1)
-        );
-    }
-
-    #[test]
-    fn selected_task_indices_from_bounds_collects_visible_rows() {
-        let visible_indices = vec![10, 11, 12, 13];
-        let bounds = SheetSelectionBounds {
-            start_row: 1,
-            end_row: 3,
-            start_column: SheetColumn::Name,
-            end_column: SheetColumn::Name,
-        };
-
-        assert_eq!(
-            GanttApp::selected_task_indices_from_bounds(bounds, &visible_indices),
-            vec![11, 12, 13]
-        );
-    }
-
-    #[test]
-    fn apply_outline_delta_to_tasks_updates_multiple_rows_uniformly() {
-        let mut first = sample_task(1, 1, "Task A");
-        first.outline_level = 1;
-        let mut second = sample_task(2, 2, "Task B");
-        second.outline_level = 3;
-        let mut third = sample_task(3, 3, "Task C");
-        third.outline_level = 2;
-        let mut document = ProjectDocument {
-            name: "Demo".to_string(),
-            title: None,
-            manager: None,
-            start_date: None,
-            finish_date: None,
-            calendars: vec![],
-            tasks: vec![first, second, third],
-            dependencies: vec![],
-        };
-
-        assert!(GanttApp::outline_delta_would_change_tasks(&document, &[0, 1, 2], 1));
-        assert!(GanttApp::apply_outline_delta_to_tasks(
-            &mut document,
-            &[0, 1, 2],
-            1
-        ));
-        assert_eq!(document.tasks[0].outline_level, 2);
-        assert_eq!(document.tasks[1].outline_level, 4);
-        assert_eq!(document.tasks[2].outline_level, 3);
-    }
-
-    #[test]
     fn progress_point_is_interpolated_across_bar_width() {
         let rect = Rect::from_min_size(Pos2::new(10.0, 20.0), Vec2::new(120.0, 14.0));
 
@@ -5822,50 +5591,47 @@ mod tests {
     }
 
     #[test]
-    fn progress_line_point_uses_percent_complete_across_row_width() {
+    fn progress_inazuma_endpoints_use_baseline_when_available() {
         let mut task = sample_task(1, 1, "Task A");
         task.start = parse_date_time(Some("2026-05-01T08:00:00"));
         task.finish = parse_date_time(Some("2026-05-03T17:00:00"));
+        task.baseline_start = parse_date_time(Some("2026-04-30T08:00:00"));
+        task.baseline_finish = parse_date_time(Some("2026-05-02T17:00:00"));
         task.percent_complete = 50.0;
 
-        let row = RowGeometry {
-            start_x: 10.0,
-            end_x: 130.0,
-            center_y: 27.0,
-        };
+        let bar_rect = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(100.0, 12.0));
+        let baseline_rect = Rect::from_min_size(Pos2::new(0.0, -10.0), Vec2::new(80.0, 2.0));
 
-        assert_eq!(
-            progress_line_point(&task, &row),
-            Some(Pos2::new(70.0, 27.0))
-        );
+        let (anchor, progress) = progress_inazuma_endpoints(&task, bar_rect, Some(baseline_rect))
+            .expect("endpoints should exist");
+
+        assert_eq!(anchor, Pos2::new(40.0, -9.0));
+        assert_eq!(progress, Pos2::new(50.0, 6.0));
     }
 
     #[test]
-    fn progress_line_point_uses_milestone_center() {
-        let mut task = sample_task(1, 1, "Task A");
-        task.start = parse_date_time(Some("2026-05-01T08:00:00"));
-        task.finish = parse_date_time(Some("2026-05-01T08:00:00"));
-        task.milestone = true;
-        task.percent_complete = 80.0;
-
-        let row = RowGeometry {
-            start_x: 42.0,
-            end_x: 42.0,
-            center_y: 27.0,
-        };
-
-        assert_eq!(progress_line_point(&task, &row), Some(Pos2::new(42.0, 27.0)));
-    }
-
-    #[test]
-    fn progress_line_point_skips_unscheduled_tasks() {
+    fn progress_inazuma_endpoints_skip_unscheduled_tasks() {
         let task = sample_task(1, 1, "Task A");
-        let row = RowGeometry {
-            start_x: 10.0,
-            end_x: 130.0,
-            center_y: 27.0,
-        };
+        let bar_rect = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(100.0, 12.0));
 
-        assert!(progress_line_point(&task, &row).is_none());
+        assert!(progress_inazuma_endpoints(&task, bar_rect, None).is_none());
+    }
+
+    #[test]
+    fn inazuma_polyline_points_keep_endpoints_and_progress_monotonic() {
+        let points = inazuma_polyline_points(Pos2::new(10.0, 20.0), Pos2::new(110.0, 70.0));
+
+        assert_eq!(points.first().copied(), Some(Pos2::new(10.0, 20.0)));
+        assert_eq!(points.last().copied(), Some(Pos2::new(110.0, 70.0)));
+        assert!(points.windows(2).all(|pair| pair[0].x <= pair[1].x));
+    }
+
+    #[test]
+    fn inazuma_polyline_points_handle_reverse_direction() {
+        let points = inazuma_polyline_points(Pos2::new(110.0, 70.0), Pos2::new(10.0, 20.0));
+
+        assert_eq!(points.first().copied(), Some(Pos2::new(110.0, 70.0)));
+        assert_eq!(points.last().copied(), Some(Pos2::new(10.0, 20.0)));
+        assert!(points.windows(2).all(|pair| pair[0].x >= pair[1].x));
     }
 }

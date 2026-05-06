@@ -1,44 +1,22 @@
-mod commands;
-mod java_bridge;
+mod app;
+mod mspdi;
 
-use commands::*;
-use java_bridge::JavaBridgeState;
-use projectlibre_tauri_backend::{AppState, AppStore};
+use std::path::PathBuf;
 
-fn main() {
-    let state = AppState::new(AppStore::load_or_default());
-    let java_bridge = JavaBridgeState::new();
+fn main() -> eframe::Result<()> {
+    let initial_file = std::env::args_os().nth(1).map(PathBuf::from);
+    let native_options = eframe::NativeOptions {
+        viewport: eframe::egui::ViewportBuilder::default()
+            .with_decorations(true)
+            .with_inner_size([1366.0, 768.0])
+            .with_min_inner_size([1180.0, 720.0])
+            .with_title("MicroProject"),
+        ..Default::default()
+    };
 
-    tauri::Builder::default()
-        .manage(state)
-        .manage(java_bridge)
-        .invoke_handler(tauri::generate_handler![
-            workspace_snapshot,
-            workspace_export_json,
-            workspace_export_xml,
-            workspace_import_json,
-            workspace_import_xml,
-            workspace_recalculate,
-            workspace_upsert_project,
-            workspace_delete_project,
-            workspace_upsert_task,
-            workspace_delete_task,
-            workspace_upsert_dependency,
-            workspace_delete_dependency,
-            workspace_upsert_resource,
-            workspace_delete_resource,
-            workspace_upsert_assignment,
-            workspace_delete_assignment,
-            workspace_upsert_calendar,
-            workspace_delete_calendar,
-            workspace_capture_baseline,
-            java_bridge_status,
-            java_bridge_ping,
-            java_bridge_snapshot,
-            java_bridge_open_mpp,
-            java_bridge_import_mpp,
-            java_bridge_export_mpp
-        ])
-        .run(tauri::generate_context!("src-tauri/tauri.conf.json"))
-        .expect("error while running tauri application");
+    eframe::run_native(
+        "MicroProject",
+        native_options,
+        Box::new(move |cc| Ok(Box::new(app::GanttApp::new(cc, initial_file.clone())))),
+    )
 }
