@@ -1,10 +1,8 @@
 use chrono::{NaiveDate, NaiveDateTime};
-use quick_xml::de::from_reader;
 use quick_xml::se::to_string;
-use serde::{Deserialize, Serialize};
-use std::fs::File;
+use serde::Serialize;
+use std::fs::read_to_string;
 use std::fs::write;
-use std::io::BufReader;
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -74,14 +72,28 @@ struct TaskXmlOut {
     summary: Option<u8>,
     #[serde(rename = "Milestone", skip_serializing_if = "Option::is_none")]
     milestone: Option<u8>,
+    #[serde(rename = "Critical", skip_serializing_if = "Option::is_none")]
+    critical: Option<u8>,
     #[serde(rename = "PercentComplete", skip_serializing_if = "Option::is_none")]
     percent_complete: Option<f32>,
     #[serde(rename = "Start", skip_serializing_if = "Option::is_none")]
     start: Option<String>,
     #[serde(rename = "Finish", skip_serializing_if = "Option::is_none")]
     finish: Option<String>,
+    #[serde(rename = "BaselineStart", skip_serializing_if = "Option::is_none")]
+    baseline_start: Option<String>,
+    #[serde(rename = "BaselineFinish", skip_serializing_if = "Option::is_none")]
+    baseline_finish: Option<String>,
     #[serde(rename = "Duration", skip_serializing_if = "Option::is_none")]
     duration: Option<String>,
+    #[serde(rename = "Notes", skip_serializing_if = "Option::is_none")]
+    notes: Option<String>,
+    #[serde(rename = "ResourceNames", skip_serializing_if = "Option::is_none")]
+    resource_names: Option<String>,
+    #[serde(rename = "CalendarUID", skip_serializing_if = "Option::is_none")]
+    calendar_uid: Option<u32>,
+    #[serde(rename = "ConstraintType", skip_serializing_if = "Option::is_none")]
+    constraint_type: Option<String>,
     #[serde(rename = "PredecessorLink", default)]
     predecessor_links: Vec<PredecessorLinkXmlOut>,
 }
@@ -110,11 +122,20 @@ pub struct GanttTask {
     pub outline_level: u32,
     pub summary: bool,
     pub milestone: bool,
+    pub critical: bool,
     pub percent_complete: f32,
+    pub start_text: String,
+    pub finish_text: String,
     pub start: Option<NaiveDateTime>,
     pub finish: Option<NaiveDateTime>,
-    pub duration_text: Option<String>,
+    pub baseline_start: Option<NaiveDateTime>,
+    pub baseline_finish: Option<NaiveDateTime>,
+    pub duration_text: String,
     pub predecessor_text: String,
+    pub notes_text: Option<String>,
+    pub resource_names: Option<String>,
+    pub calendar_uid: Option<u32>,
+    pub constraint_type: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -131,94 +152,13 @@ pub struct ChartRange {
     pub end: NaiveDate,
 }
 
-impl ChartRange {
-    pub fn days(self) -> i64 {
-        (self.end - self.start).num_days().max(1)
-    }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename = "Project")]
-struct ProjectXml {
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "Title")]
-    title: Option<String>,
-    #[serde(rename = "Manager")]
-    manager: Option<String>,
-    #[serde(rename = "StartDate")]
-    start_date: Option<String>,
-    #[serde(rename = "FinishDate")]
-    finish_date: Option<String>,
-    #[serde(rename = "Calendars")]
-    calendars: Option<CalendarsXml>,
-    #[serde(rename = "Tasks")]
-    tasks: Option<TasksXml>,
-}
-
-#[derive(Debug, Deserialize, Default)]
-struct CalendarsXml {
-    #[serde(rename = "Calendar", default)]
-    calendars: Vec<CalendarXml>,
-}
-
-#[derive(Debug, Deserialize, Default)]
-struct CalendarXml {
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "IsBaseCalendar")]
-    base_calendar: Option<u8>,
-}
-
-#[derive(Debug, Deserialize, Default)]
-struct TasksXml {
-    #[serde(rename = "Task", default)]
-    tasks: Vec<TaskXml>,
-}
-
-#[derive(Debug, Deserialize, Default)]
-struct TaskXml {
-    #[serde(rename = "UID")]
-    uid: Option<u32>,
-    #[serde(rename = "ID")]
-    id: Option<u32>,
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "OutlineLevel")]
-    outline_level: Option<u32>,
-    #[serde(rename = "Summary")]
-    summary: Option<u8>,
-    #[serde(rename = "Milestone")]
-    milestone: Option<u8>,
-    #[serde(rename = "PercentComplete")]
-    percent_complete: Option<f32>,
-    #[serde(rename = "Start")]
-    start: Option<String>,
-    #[serde(rename = "Finish")]
-    finish: Option<String>,
-    #[serde(rename = "Duration")]
-    duration: Option<String>,
-    #[serde(rename = "PredecessorLink", default)]
-    predecessor_links: Vec<PredecessorLinkXml>,
-}
-
-#[derive(Debug, Deserialize, Default)]
-struct PredecessorLinkXml {
-    #[serde(rename = "PredecessorUID")]
-    predecessor_uid: Option<u32>,
-    #[serde(rename = "Type")]
-    relation: Option<String>,
-    #[serde(rename = "LinkLag")]
-    lag: Option<String>,
-}
-
 pub fn load_project_document(path: &Path) -> Result<ProjectDocument, String> {
-    let file = File::open(path)
-        .map_err(|error| format!("failed to open {}: {error}", path.display()))?;
-    let reader = BufReader::new(file);
-    let xml: ProjectXml = from_reader(reader)
+    let xml = read_to_string(path)
+        .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+    let xml = xml.trim_start_matches(char::is_whitespace);
+    let doc = roxmltree::Document::parse(xml)
         .map_err(|error| format!("failed to parse {}: {error}", path.display()))?;
-    Ok(convert(xml, path))
+    Ok(convert(&doc, path))
 }
 
 pub fn save_project_document(path: &Path, document: &ProjectDocument) -> Result<(), String> {
@@ -250,10 +190,27 @@ pub fn save_project_document(path: &Path, document: &ProjectDocument) -> Result<
                     outline_level: Some(task.outline_level.max(1)),
                     summary: Some(if task.summary { 1 } else { 0 }),
                     milestone: Some(if task.milestone { 1 } else { 0 }),
+                    critical: Some(if task.critical { 1 } else { 0 }),
                     percent_complete: Some(task.percent_complete),
-                    start: task.start.map(format_date_time),
-                    finish: task.finish.map(format_date_time),
-                    duration: task.duration_text.clone(),
+                    start: (!task.start_text.trim().is_empty()).then(|| task.start_text.clone()),
+                    finish: (!task.finish_text.trim().is_empty()).then(|| task.finish_text.clone()),
+                    baseline_start: task.baseline_start.map(format_date_time),
+                    baseline_finish: task.baseline_finish.map(format_date_time),
+                    duration: (!task.duration_text.trim().is_empty())
+                        .then(|| task.duration_text.clone()),
+                    notes: task
+                        .notes_text
+                        .as_ref()
+                        .and_then(|text| (!text.trim().is_empty()).then(|| text.clone())),
+                    resource_names: task
+                        .resource_names
+                        .as_ref()
+                        .and_then(|text| (!text.trim().is_empty()).then(|| text.clone())),
+                    calendar_uid: task.calendar_uid,
+                    constraint_type: task
+                        .constraint_type
+                        .as_ref()
+                        .and_then(|text| (!text.trim().is_empty()).then(|| text.clone())),
                     predecessor_links: document
                         .dependencies
                         .iter()
@@ -271,52 +228,90 @@ pub fn save_project_document(path: &Path, document: &ProjectDocument) -> Result<
 
     let mut rendered = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     rendered.push_str(
-        &to_string(&xml).map_err(|error| format!("failed to serialize {}: {error}", path.display()))?,
+        &to_string(&xml)
+            .map_err(|error| format!("failed to serialize {}: {error}", path.display()))?,
     );
     rendered.push('\n');
 
     write(path, rendered).map_err(|error| format!("failed to write {}: {error}", path.display()))
 }
 
-fn convert(xml: ProjectXml, path: &Path) -> ProjectDocument {
+fn convert(doc: &roxmltree::Document<'_>, path: &Path) -> ProjectDocument {
+    let root = doc
+        .descendants()
+        .find(|node| node.is_element() && node.tag_name().name() == "Project")
+        .unwrap_or_else(|| doc.root_element());
+
     let fallback_name = path
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or("Untitled Project")
         .to_string();
-    let name = xml.name.clone().unwrap_or_else(|| fallback_name.clone());
-    let title = xml.title.clone().or_else(|| Some(name.clone()));
-    let calendars = xml
-        .calendars
+    let name = text_child(root, "Name").unwrap_or_else(|| fallback_name.clone());
+    let title = text_child(root, "Title").or_else(|| Some(name.clone()));
+    let manager = text_child(root, "Manager");
+    let start_date = parse_date_time(text_child(root, "StartDate").as_deref());
+    let finish_date = parse_date_time(text_child(root, "FinishDate").as_deref());
+    let calendars = root
+        .children()
+        .find(|node| node.is_element() && node.tag_name().name() == "Calendars")
         .map(|wrapper| {
             wrapper
-                .calendars
-                .into_iter()
+                .children()
+                .filter(|node| node.is_element() && node.tag_name().name() == "Calendar")
                 .map(|calendar| CalendarInfo {
-                    name: calendar.name.unwrap_or_else(|| "Calendar".to_string()),
-                    base_calendar: calendar.base_calendar.unwrap_or(0) != 0,
+                    name: text_child(calendar, "Name").unwrap_or_else(|| "Calendar".to_string()),
+                    base_calendar: text_child(calendar, "IsBaseCalendar")
+                        .and_then(|text| text.parse::<u8>().ok())
+                        .unwrap_or(0)
+                        != 0,
                 })
-                .collect()
+                .collect::<Vec<_>>()
         })
         .unwrap_or_default();
 
     let mut tasks = Vec::new();
     let mut dependencies = Vec::new();
 
-    if let Some(task_wrapper) = xml.tasks {
-        for task in task_wrapper.tasks {
-            let uid = task.uid.unwrap_or(0);
-            let id = task.id.unwrap_or(uid);
-            let start = parse_date_time(task.start.as_deref());
-            let finish = parse_date_time(task.finish.as_deref());
-            let predecessor_text = task
-                .predecessor_links
+    if let Some(task_wrapper) = root
+        .children()
+        .find(|node| node.is_element() && node.tag_name().name() == "Tasks")
+    {
+        for task in task_wrapper
+            .children()
+            .filter(|node| node.is_element() && node.tag_name().name() == "Task")
+        {
+            let uid = text_child(task, "UID")
+                .and_then(|text| text.parse::<u32>().ok())
+                .unwrap_or(0);
+            let id = text_child(task, "ID")
+                .and_then(|text| text.parse::<u32>().ok())
+                .unwrap_or(uid);
+            let start_text = text_child(task, "Start").unwrap_or_default();
+            let finish_text = text_child(task, "Finish").unwrap_or_default();
+            let baseline_start_text = text_child(task, "BaselineStart").unwrap_or_default();
+            let baseline_finish_text = text_child(task, "BaselineFinish").unwrap_or_default();
+            let start = parse_date_time(Some(start_text.as_str()));
+            let finish = parse_date_time(Some(finish_text.as_str()));
+            let baseline_start = parse_date_time(Some(baseline_start_text.as_str()));
+            let baseline_finish = parse_date_time(Some(baseline_finish_text.as_str()));
+            let predecessor_links = task
+                .children()
+                .filter(|node| node.is_element() && node.tag_name().name() == "PredecessorLink")
+                .map(|link| PredecessorLinkData {
+                    predecessor_uid: text_child(link, "PredecessorUID")
+                        .and_then(|text| text.parse::<u32>().ok()),
+                    relation: text_child(link, "Type"),
+                    lag: text_child(link, "LinkLag"),
+                })
+                .collect::<Vec<_>>();
+            let predecessor_text = predecessor_links
                 .iter()
-                .map(format_predecessor_link)
+                .map(format_predecessor_link_data)
                 .collect::<Vec<_>>()
                 .join(", ");
 
-            for link in task.predecessor_links {
+            for link in predecessor_links {
                 if let Some(predecessor_uid) = link.predecessor_uid {
                     dependencies.push(GanttDependency {
                         predecessor_uid,
@@ -330,15 +325,38 @@ fn convert(xml: ProjectXml, path: &Path) -> ProjectDocument {
             tasks.push(GanttTask {
                 uid,
                 id,
-                name: task.name.unwrap_or_default(),
-                outline_level: task.outline_level.unwrap_or(1),
-                summary: task.summary.unwrap_or(0) != 0,
-                milestone: task.milestone.unwrap_or(0) != 0,
-                percent_complete: task.percent_complete.unwrap_or(0.0),
+                name: text_child(task, "Name").unwrap_or_default(),
+                outline_level: text_child(task, "OutlineLevel")
+                    .and_then(|text| text.parse::<u32>().ok())
+                    .unwrap_or(1),
+                summary: text_child(task, "Summary")
+                    .and_then(|text| text.parse::<u8>().ok())
+                    .unwrap_or(0)
+                    != 0,
+                milestone: text_child(task, "Milestone")
+                    .and_then(|text| text.parse::<u8>().ok())
+                    .unwrap_or(0)
+                    != 0,
+                critical: text_child(task, "Critical")
+                    .and_then(|text| text.parse::<u8>().ok())
+                    .unwrap_or(0)
+                    != 0,
+                percent_complete: text_child(task, "PercentComplete")
+                    .and_then(|text| text.parse::<f32>().ok())
+                    .unwrap_or(0.0),
+                start_text,
+                finish_text,
                 start,
                 finish,
-                duration_text: task.duration,
+                baseline_start,
+                baseline_finish,
+                duration_text: text_child(task, "Duration").unwrap_or_default(),
                 predecessor_text,
+                notes_text: text_child(task, "Notes"),
+                resource_names: text_child(task, "ResourceNames"),
+                calendar_uid: text_child(task, "CalendarUID")
+                    .and_then(|text| text.parse::<u32>().ok()),
+                constraint_type: text_child(task, "ConstraintType"),
             });
         }
     }
@@ -346,9 +364,9 @@ fn convert(xml: ProjectXml, path: &Path) -> ProjectDocument {
     ProjectDocument {
         name,
         title,
-        manager: xml.manager,
-        start_date: parse_date_time(xml.start_date.as_deref()),
-        finish_date: parse_date_time(xml.finish_date.as_deref()),
+        manager,
+        start_date,
+        finish_date,
         calendars,
         tasks,
         dependencies,
@@ -379,7 +397,22 @@ pub fn parse_date_time(text: Option<&str>) -> Option<NaiveDateTime> {
         .and_then(|date| date.and_hms_opt(0, 0, 0))
 }
 
-fn format_predecessor_link(link: &PredecessorLinkXml) -> String {
+#[derive(Debug, Clone)]
+struct PredecessorLinkData {
+    predecessor_uid: Option<u32>,
+    relation: Option<String>,
+    lag: Option<String>,
+}
+
+fn text_child(node: roxmltree::Node<'_, '_>, name: &str) -> Option<String> {
+    node.children()
+        .find(|child| child.is_element() && child.tag_name().name() == name)
+        .and_then(|child| child.text())
+        .map(|text| text.trim().to_string())
+        .filter(|text| !text.is_empty())
+}
+
+fn format_predecessor_link_data(link: &PredecessorLinkData) -> String {
     let relation = link.relation.as_deref().unwrap_or("FS");
     let lag = link.lag.as_deref().unwrap_or("").trim();
     if lag.is_empty() {
@@ -523,11 +556,20 @@ mod tests {
                 outline_level: 1,
                 summary: false,
                 milestone: false,
+                critical: false,
                 percent_complete: 25.0,
+                start_text: "2026-05-06T08:00:00".to_string(),
+                finish_text: "2026-05-06T17:00:00".to_string(),
                 start: parse_date_time(Some("2026-05-06T08:00:00")),
                 finish: parse_date_time(Some("2026-05-06T17:00:00")),
-                duration_text: Some("PT8H0M0S".to_string()),
+                baseline_start: parse_date_time(Some("2026-05-05T08:00:00")),
+                baseline_finish: parse_date_time(Some("2026-05-05T17:00:00")),
+                duration_text: "PT8H0M0S".to_string(),
                 predecessor_text: "FS".to_string(),
+                notes_text: Some("Notes".to_string()),
+                resource_names: Some("Dev".to_string()),
+                calendar_uid: Some(1),
+                constraint_type: Some("ASAP".to_string()),
             }],
             dependencies: vec![GanttDependency {
                 predecessor_uid: 1,
@@ -552,5 +594,52 @@ mod tests {
         assert_eq!(reloaded.dependencies.len(), 1);
         assert_eq!(reloaded.tasks[0].name, "Task A");
         assert_eq!(reloaded.tasks[0].percent_complete, 25.0);
+    }
+
+    #[test]
+    fn parses_real_world_project_xml_with_extra_elements() {
+        let xml = r#"
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <Project xmlns="http://schemas.microsoft.com/project">
+            <SaveVersion>14</SaveVersion>
+            <Name>test</Name>
+            <Title>test</Title>
+            <Manager>aaaa</Manager>
+            <ScheduleFromStart>1</ScheduleFromStart>
+            <StartDate>2026-05-06T08:00:00</StartDate>
+            <FinishDate>2026-05-21T17:00:00</FinishDate>
+            <Calendars>
+                <Calendar>
+                    <UID>1</UID>
+                    <Name>標準</Name>
+                    <IsBaseCalendar>1</IsBaseCalendar>
+                </Calendar>
+            </Calendars>
+            <Tasks>
+                <Task>
+                    <UID>1</UID>
+                    <ID>1</ID>
+                    <Name>Task A</Name>
+                    <Summary>0</Summary>
+                    <Milestone>0</Milestone>
+                    <PercentComplete>50</PercentComplete>
+                    <Start>2026-05-06T08:00:00</Start>
+                    <Finish>2026-05-06T17:00:00</Finish>
+                    <Duration>PT8H0M0S</Duration>
+                </Task>
+            </Tasks>
+        </Project>
+        "#;
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("real.xml");
+        fs::write(&path, xml).unwrap();
+        let document = load_project_document(&path).unwrap();
+
+        assert_eq!(document.name, "test");
+        assert_eq!(document.manager.as_deref(), Some("aaaa"));
+        assert_eq!(document.calendars.len(), 1);
+        assert_eq!(document.tasks.len(), 1);
+        assert_eq!(document.tasks[0].name, "Task A");
     }
 }

@@ -7,11 +7,20 @@
   "build": {
     "beforeDevCommand": "",
     "beforeBuildCommand": "",
-    "distDir": "../frontend",
-    "devPath": "../frontend/index.html",
+    "distDir": "frontend",
+    "devPath": "frontend/index.html",
     "withGlobalTauri": true
   },
   "tauri": {
+    "allowlist": {
+      "dialog": {
+        "open": true,
+        "save": true,
+        "message": false,
+        "ask": false,
+        "confirm": false
+      }
+    },
     "windows": [
       {
         "title": "MicroProject",
@@ -21,7 +30,8 @@
     ],
     "bundle": {
       "identifier": "com.tetsuji16.microproject",
-      "active": true
+      "active": true,
+      "icon": ["icons/icon.ico"]
     }
   }
 }

@@ -1,44 +1,30 @@
 mod commands;
-mod java_bridge;
+mod mspdi;
+mod session;
 
-use commands::*;
-use java_bridge::JavaBridgeState;
-use projectlibre_tauri_backend::{AppState, AppStore};
+use session::{ProjectAppState, ProjectSession};
+use std::path::PathBuf;
+use std::sync::Mutex;
 
 fn main() {
-    let state = AppState::new(AppStore::load_or_default());
-    let java_bridge = JavaBridgeState::new();
+    let initial_file = std::env::args_os().nth(1).map(PathBuf::from);
+    let state = ProjectAppState {
+        session: Mutex::new(ProjectSession::new(initial_file)),
+    };
 
     tauri::Builder::default()
         .manage(state)
-        .manage(java_bridge)
         .invoke_handler(tauri::generate_handler![
-            workspace_snapshot,
-            workspace_export_json,
-            workspace_export_xml,
-            workspace_import_json,
-            workspace_import_xml,
-            workspace_recalculate,
-            workspace_upsert_project,
-            workspace_delete_project,
-            workspace_upsert_task,
-            workspace_delete_task,
-            workspace_upsert_dependency,
-            workspace_delete_dependency,
-            workspace_upsert_resource,
-            workspace_delete_resource,
-            workspace_upsert_assignment,
-            workspace_delete_assignment,
-            workspace_upsert_calendar,
-            workspace_delete_calendar,
-            workspace_capture_baseline,
-            java_bridge_status,
-            java_bridge_ping,
-            java_bridge_snapshot,
-            java_bridge_open_mpp,
-            java_bridge_import_mpp,
-            java_bridge_export_mpp
+            commands::project_snapshot,
+            commands::project_open,
+            commands::project_save,
+            commands::project_save_as,
+            commands::project_upsert_task,
+            commands::project_delete_task,
+            commands::project_create_task,
+            commands::project_upsert_dependency,
+            commands::project_delete_dependency,
         ])
-        .run(tauri::generate_context!("src-tauri/tauri.conf.json"))
-        .expect("error while running tauri application");
+        .run(tauri::generate_context!())
+        .expect("failed to start MicroProject");
 }
