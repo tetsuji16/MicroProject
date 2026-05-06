@@ -57,6 +57,9 @@ const BASELINE: Color32 = Color32::from_rgb(148, 148, 148);
 const WEEKEND_BG: Color32 = Color32::from_rgb(248, 248, 248);
 const TODAY: Color32 = Color32::from_rgb(242, 171, 61);
 const UNDO_STACK_LIMIT: usize = 64;
+const TASK_BAR_HANDLE_WIDTH: f32 = 7.0;
+const TASK_BAR_HANDLE_HEIGHT: f32 = 13.0;
+const TASK_BAR_LINK_HANDLE_GAP: f32 = 7.0;
 
 const JAPANESE_FONT_CANDIDATES: &[&str] = &[
     r"C:\Windows\Fonts\meiryo.ttc",
@@ -201,6 +204,70 @@ enum SheetNavigationDirection {
     Down,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TaskDragKind {
+    Move,
+    ResizeStart,
+    ResizeFinish,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DependencyRelationChoice {
+    FS,
+    SS,
+    FF,
+    SF,
+}
+
+impl DependencyRelationChoice {
+    const ALL: [DependencyRelationChoice; 4] = [
+        DependencyRelationChoice::FS,
+        DependencyRelationChoice::SS,
+        DependencyRelationChoice::FF,
+        DependencyRelationChoice::SF,
+    ];
+
+    fn label(self) -> &'static str {
+        match self {
+            DependencyRelationChoice::FS => "FS",
+            DependencyRelationChoice::SS => "SS",
+            DependencyRelationChoice::FF => "FF",
+            DependencyRelationChoice::SF => "SF",
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+enum ChartInteractionKind {
+    Task {
+        task_uid: u32,
+        kind: TaskDragKind,
+        pointer_origin_x: f32,
+    },
+    Dependency {
+        source_task_uid: u32,
+        pointer_origin: Pos2,
+    },
+}
+
+#[derive(Clone, Debug)]
+struct ChartInteractionState {
+    original_document: ProjectDocument,
+    dirty_before: bool,
+    kind: ChartInteractionKind,
+}
+
+#[derive(Clone, Debug)]
+struct DependencyPickerState {
+    original_document: ProjectDocument,
+    source_task_uid: u32,
+    target_task_uid: u32,
+    relation: DependencyRelationChoice,
+    lag_text: String,
+    popup_pos: Pos2,
+    dirty_before: bool,
+}
+
 pub struct GanttApp {
     document: Option<ProjectDocument>,
     document_path: Option<PathBuf>,
@@ -217,6 +284,8 @@ pub struct GanttApp {
     sheet_selection_anchor: Option<SheetCellSelection>,
     sheet_editing_cell: Option<SheetCellSelection>,
     sheet_selection_dragging: bool,
+    chart_interaction: Option<ChartInteractionState>,
+    dependency_picker: Option<DependencyPickerState>,
     collapsed_task_uids: HashSet<u32>,
     task_editor: TaskEditorState,
     undo_stack: Vec<UndoState>,
@@ -292,6 +361,8 @@ impl GanttApp {
             sheet_selection_anchor: None,
             sheet_editing_cell: None,
             sheet_selection_dragging: false,
+            chart_interaction: None,
+            dependency_picker: None,
             collapsed_task_uids: HashSet::new(),
             task_editor: TaskEditorState::default(),
             undo_stack: Vec::new(),
@@ -344,6 +415,8 @@ impl GanttApp {
                 self.document_path = Some(path.clone());
                 self.error = None;
                 self.dirty = false;
+                self.chart_interaction = None;
+                self.dependency_picker = None;
                 self.undo_stack.clear();
                 self.redo_stack.clear();
                 self.status = format!("読み込みました: {}", path.display());
@@ -467,6 +540,8 @@ impl GanttApp {
         self.sheet_selection_anchor = previous.sheet_selection_anchor;
         self.sheet_editing_cell = None;
         self.dirty = previous.dirty;
+        self.chart_interaction = None;
+        self.dependency_picker = None;
         self.status = "元に戻しました。".to_string();
         self.sync_task_editor_with_selection();
     }
@@ -498,6 +573,8 @@ impl GanttApp {
         self.sheet_selection_anchor = next.sheet_selection_anchor;
         self.sheet_editing_cell = None;
         self.dirty = next.dirty;
+        self.chart_interaction = None;
+        self.dependency_picker = None;
         self.status = "やり直しました。".to_string();
         self.sync_task_editor_with_selection();
     }
@@ -1818,6 +1895,7 @@ impl GanttApp {
         let document = document_ref.as_mut().expect("document exists");
 
         let mut sheet_selection_dragging = self.sheet_selection_dragging;
+        let mut chart_task_editor_refresh = false;
         pending_selection = Self::render_gantt_table(
             ui,
             document,
@@ -1833,17 +1911,139 @@ impl GanttApp {
             &mut dirty,
             &mut self.undo_stack,
             collapsed_task_uids,
+            &mut self.chart_interaction,
+            &mut chart_task_editor_refresh,
+            &mut self.dependency_picker,
         );
         self.sheet_selection_dragging = sheet_selection_dragging;
         if pending_selection != previous_selection {
             selection_changed = true;
         }
 
+        if self.dependency_picker.is_some() {
+            self.show_dependency_picker(ui, &mut pending_selection, &mut chart_task_editor_refresh);
+        }
+
         self.dirty = dirty;
         self.selected_task = pending_selection;
         if selection_changed && self.selected_task.is_some() {
             self.sync_task_editor_with_selection();
+        } else if chart_task_editor_refresh && self.selected_task.is_some() {
+            self.sync_task_editor_with_selection();
         }
+    }
+
+    fn show_dependency_picker(
+        &mut self,
+        ui: &mut egui::Ui,
+        pending_selection: &mut Option<usize>,
+        chart_task_editor_refresh: &mut bool,
+    ) {
+        let ctx = ui.ctx().clone();
+        let mut apply_requested = false;
+        let mut cancel_requested = false;
+        let mut open = true;
+        {
+            let Some(state) = self.dependency_picker.as_mut() else {
+                return;
+            };
+            let source_name = find_task_by_uid(&state.original_document.tasks, state.source_task_uid)
+                .map(|task| task.name.clone())
+                .unwrap_or_else(|| "Source".to_string());
+            let target_name = find_task_by_uid(&state.original_document.tasks, state.target_task_uid)
+                .map(|task| task.name.clone())
+                .unwrap_or_else(|| "Target".to_string());
+
+            egui::Window::new("依存関係を追加")
+                .collapsible(false)
+                .resizable(false)
+                .fixed_pos(state.popup_pos)
+                .open(&mut open)
+                .show(&ctx, |ui| {
+                    ui.label(format!("{source_name} -> {target_name}"));
+                    ui.add_space(4.0);
+
+                    ui.horizontal_wrapped(|ui| {
+                        for relation in DependencyRelationChoice::ALL {
+                            ui.radio_value(&mut state.relation, relation, relation.label());
+                        }
+                    });
+
+                    ui.add_space(4.0);
+                    ui.horizontal(|ui| {
+                        ui.label("Lag");
+                        ui.text_edit_singleline(&mut state.lag_text);
+                    });
+
+                    ui.add_space(8.0);
+                    ui.horizontal(|ui| {
+                        if ui.button("追加").clicked() {
+                            apply_requested = true;
+                        }
+                        if ui.button("キャンセル").clicked() {
+                            cancel_requested = true;
+                        }
+                    });
+                });
+        }
+
+        if cancel_requested || !open {
+            self.dependency_picker = None;
+            self.status = "依存関係の追加を取り消しました。".to_string();
+            return;
+        }
+
+        if !apply_requested {
+            return;
+        }
+
+        let Some(state) = self.dependency_picker.take() else {
+            return;
+        };
+        let Some(document) = self.document.as_mut() else {
+            return;
+        };
+
+        if dependency_exists(document, state.source_task_uid, state.target_task_uid) {
+            self.status = "既に同じ依存関係があります。".to_string();
+            return;
+        }
+
+        let lag_text = {
+            let trimmed = state.lag_text.trim().to_string();
+            (!trimmed.is_empty()).then_some(trimmed)
+        };
+        let added = add_dependency_from_drag(
+            document,
+            state.source_task_uid,
+            state.target_task_uid,
+            state.relation,
+            lag_text,
+        );
+        if !added {
+            self.status = "依存関係を追加できませんでした。".to_string();
+            return;
+        }
+
+        push_undo_state(
+            &mut self.undo_stack,
+            &state.original_document,
+            self.selected_task,
+            self.selected_sheet_column,
+            self.sheet_selection_anchor,
+            state.dirty_before,
+        );
+        self.dirty = true;
+        self.status = "依存関係を追加しました。".to_string();
+        *pending_selection = find_task_index_by_uid(&document.tasks, state.target_task_uid);
+        self.selected_sheet_column = SheetColumn::Predecessors;
+        if let Some(task_index) = *pending_selection {
+            self.sheet_selection_anchor = Some(SheetCellSelection {
+                task_index,
+                column: SheetColumn::Predecessors,
+            });
+        }
+        *chart_task_editor_refresh = true;
     }
 
     fn landing_view(ui: &mut egui::Ui, recent_files: &[PathBuf]) {
@@ -2306,7 +2506,17 @@ impl GanttApp {
         dirty: &mut bool,
         undo_stack: &mut Vec<UndoState>,
         collapsed_task_uids: &mut HashSet<u32>,
+        chart_interaction: &mut Option<ChartInteractionState>,
+        chart_task_editor_refresh: &mut bool,
+        dependency_picker: &mut Option<DependencyPickerState>,
     ) -> Option<usize> {
+        let pointer_position = ui.input(|input| input.pointer.interact_pos());
+        Self::apply_active_chart_drag_preview(
+            document,
+            chart_interaction,
+            pointer_position,
+            zoom_px_per_day,
+        );
         let range = document.chart_range();
         let fixed_columns_width = 42.0 + 180.0 + 72.0 + 92.0 + 92.0 + 74.0 + 122.0;
         let chart_content_width = (range.days() as f32 * zoom_px_per_day).max(360.0);
@@ -3075,6 +3285,118 @@ impl GanttApp {
                     row_selected,
                     show_critical_path,
                 );
+                let chart_drag_active =
+                    chart_interaction.is_some() || dependency_picker.is_some();
+                let body_response = ui.interact(
+                    geom.body_rect,
+                    ui.id().with(("gantt_body", task.uid)),
+                    Sense::click_and_drag(),
+                );
+                let start_handle_response = geom.start_handle_rect.map(|rect| {
+                    ui.interact(
+                        rect,
+                        ui.id().with(("gantt_start_handle", task.uid)),
+                        Sense::click_and_drag(),
+                    )
+                });
+                let finish_handle_response = geom.finish_handle_rect.map(|rect| {
+                    ui.interact(
+                        rect,
+                        ui.id().with(("gantt_finish_handle", task.uid)),
+                        Sense::click_and_drag(),
+                    )
+                });
+                let link_handle_response = ui.interact(
+                    geom.link_handle_rect,
+                    ui.id().with(("gantt_link_handle", task.uid)),
+                    Sense::click_and_drag(),
+                );
+
+                if !chart_drag_active {
+                    if body_response.double_clicked() || body_response.clicked() {
+                        pending_selection = Some(index);
+                        *selected_sheet_column = SheetColumn::Name;
+                        *selection_anchor = Some(SheetCellSelection {
+                            task_index: index,
+                            column: SheetColumn::Name,
+                        });
+                    }
+                    if body_response.drag_started() {
+                        Self::begin_chart_task_drag(
+                            chart_interaction,
+                            document,
+                            index,
+                            task.uid,
+                            TaskDragKind::Move,
+                            pointer_position,
+                            *dirty,
+                        );
+                        pending_selection = Some(index);
+                        *selected_sheet_column = SheetColumn::Name;
+                        *selection_anchor = Some(SheetCellSelection {
+                            task_index: index,
+                            column: SheetColumn::Name,
+                        });
+                        *editing_cell = None;
+                    }
+                    if let Some(response) = start_handle_response.as_ref() {
+                        if response.drag_started() {
+                            Self::begin_chart_task_drag(
+                                chart_interaction,
+                                document,
+                                index,
+                                task.uid,
+                                TaskDragKind::ResizeStart,
+                                pointer_position,
+                                *dirty,
+                            );
+                            pending_selection = Some(index);
+                            *selected_sheet_column = SheetColumn::Name;
+                            *selection_anchor = Some(SheetCellSelection {
+                                task_index: index,
+                                column: SheetColumn::Name,
+                            });
+                            *editing_cell = None;
+                        }
+                    }
+                    if let Some(response) = finish_handle_response.as_ref() {
+                        if response.drag_started() {
+                            Self::begin_chart_task_drag(
+                                chart_interaction,
+                                document,
+                                index,
+                                task.uid,
+                                TaskDragKind::ResizeFinish,
+                                pointer_position,
+                                *dirty,
+                            );
+                            pending_selection = Some(index);
+                            *selected_sheet_column = SheetColumn::Name;
+                            *selection_anchor = Some(SheetCellSelection {
+                                task_index: index,
+                                column: SheetColumn::Name,
+                            });
+                            *editing_cell = None;
+                        }
+                    }
+                    if link_handle_response.drag_started() {
+                        Self::begin_chart_dependency_drag(
+                            chart_interaction,
+                            document,
+                            index,
+                            task.uid,
+                            pointer_position,
+                            *dirty,
+                        );
+                        pending_selection = Some(index);
+                        *selected_sheet_column = SheetColumn::Predecessors;
+                        *selection_anchor = Some(SheetCellSelection {
+                            task_index: index,
+                            column: SheetColumn::Predecessors,
+                        });
+                        *editing_cell = None;
+                    }
+                }
                 geometry.borrow_mut().push(geom);
             } else {
                 let mut blank_x = table_left;
@@ -3104,6 +3426,23 @@ impl GanttApp {
         }
 
         let rects = geometry.into_inner();
+        let pointer_released = ui.input(|input| !input.pointer.primary_down());
+        if pointer_released && chart_interaction.is_some() {
+            Self::finish_chart_interaction(
+                document,
+                chart_interaction,
+                &rects,
+                pointer_position,
+                &mut pending_selection,
+                selected_sheet_column,
+                selection_anchor,
+                dirty,
+                undo_stack,
+                chart_task_editor_refresh,
+                dependency_picker,
+            );
+        }
+
         if !rects.is_empty() {
             draw_dependencies(
                 ui.painter(),
@@ -3112,13 +3451,25 @@ impl GanttApp {
                 &document.dependencies,
                 selected_uid,
             );
+
+            for (geom, &task_index) in rects.iter().zip(visible_indices.iter()) {
+                let task = &document.tasks[task_index];
+                let baseline_rect =
+                    task_baseline_rect(task, range, zoom_px_per_day, geom.center_y, geom.bar_rect.left());
+                draw_progress_actual_line(
+                    ui.painter(),
+                    task,
+                    geom.bar_rect,
+                    baseline_rect,
+                    selected_uid == Some(task.uid),
+                    show_critical_path,
+                );
+            }
         }
 
         if pending_selection != selected_task {
             *dirty = true;
         }
-
-        return pending_selection;
 
         #[cfg(any())]
         egui::ScrollArea::both()
@@ -3817,6 +4168,175 @@ impl GanttApp {
 
         pending_selection
     }
+
+    fn begin_chart_task_drag(
+        chart_interaction: &mut Option<ChartInteractionState>,
+        document: &ProjectDocument,
+        _task_index: usize,
+        task_uid: u32,
+        kind: TaskDragKind,
+        pointer_position: Option<Pos2>,
+        dirty_before: bool,
+    ) {
+        let pointer_origin_x = pointer_position.map(|position| position.x).unwrap_or(0.0);
+        *chart_interaction = Some(ChartInteractionState {
+            original_document: document.clone(),
+            dirty_before,
+            kind: ChartInteractionKind::Task {
+                task_uid,
+                kind,
+                pointer_origin_x,
+            },
+        });
+    }
+
+    fn begin_chart_dependency_drag(
+        chart_interaction: &mut Option<ChartInteractionState>,
+        document: &ProjectDocument,
+        _task_index: usize,
+        task_uid: u32,
+        pointer_position: Option<Pos2>,
+        dirty_before: bool,
+    ) {
+        let pointer_origin = pointer_position.unwrap_or(Pos2::new(0.0, 0.0));
+        *chart_interaction = Some(ChartInteractionState {
+            original_document: document.clone(),
+            dirty_before,
+            kind: ChartInteractionKind::Dependency {
+                source_task_uid: task_uid,
+                pointer_origin,
+            },
+        });
+    }
+
+    fn apply_active_chart_drag_preview(
+        document: &mut ProjectDocument,
+        chart_interaction: &Option<ChartInteractionState>,
+        pointer_position: Option<Pos2>,
+        px_per_day: f32,
+    ) {
+        let Some(state) = chart_interaction.as_ref() else {
+            return;
+        };
+
+        *document = state.original_document.clone();
+
+        let Some(pointer_position) = pointer_position else {
+            return;
+        };
+
+        let ChartInteractionKind::Task {
+            task_uid,
+            kind,
+            pointer_origin_x,
+        } = state.kind
+        else {
+            return;
+        };
+
+        let delta_days = ((pointer_position.x - pointer_origin_x) / px_per_day.max(1.0)).round()
+            as i64;
+        if delta_days == 0 {
+            return;
+        }
+
+        let _ = apply_task_drag_preview(document, &state.original_document, task_uid, kind, delta_days);
+    }
+
+    fn finish_chart_interaction(
+        document: &mut ProjectDocument,
+        chart_interaction: &mut Option<ChartInteractionState>,
+        row_geometries: &[TaskBarGeometry],
+        pointer_position: Option<Pos2>,
+        pending_selection: &mut Option<usize>,
+        selected_sheet_column: &mut SheetColumn,
+        selection_anchor: &mut Option<SheetCellSelection>,
+        dirty: &mut bool,
+        undo_stack: &mut Vec<UndoState>,
+        chart_task_editor_refresh: &mut bool,
+        dependency_picker: &mut Option<DependencyPickerState>,
+    ) {
+        let Some(state) = chart_interaction.take() else {
+            return;
+        };
+
+        match state.kind {
+            ChartInteractionKind::Task { task_uid, .. } => {
+                let original = state.original_document;
+                let original_index = find_task_index_by_uid(&original.tasks, task_uid);
+                let current_index = find_task_index_by_uid(&document.tasks, task_uid);
+                let changed = match (original_index, current_index) {
+                    (Some(original_index), Some(current_index)) => {
+                        let original_task = &original.tasks[original_index];
+                        let current_task = &document.tasks[current_index];
+                        original_task.start != current_task.start
+                            || original_task.finish != current_task.finish
+                            || original_task.start_text != current_task.start_text
+                            || original_task.finish_text != current_task.finish_text
+                    }
+                    _ => false,
+                };
+
+                if changed {
+                    push_undo_state(
+                        undo_stack,
+                        &original,
+                        *pending_selection,
+                        *selected_sheet_column,
+                        *selection_anchor,
+                        state.dirty_before,
+                    );
+                    *dirty = true;
+                    *chart_task_editor_refresh = pending_selection
+                        .and_then(|task_index| document.tasks.get(task_index))
+                        .is_some_and(|task| task.uid == task_uid);
+                }
+            }
+            ChartInteractionKind::Dependency {
+                source_task_uid,
+                pointer_origin,
+            } => {
+                let pointer = pointer_position.unwrap_or(pointer_origin);
+                let Some(target_task_uid) = row_geometries
+                    .iter()
+                    .find(|geometry| geometry.bar_rect.expand2(Vec2::splat(4.0)).contains(pointer))
+                    .map(|geometry| geometry.task_uid)
+                else {
+                    return;
+                };
+
+                if source_task_uid == target_task_uid {
+                    return;
+                }
+
+                let Some(source_task_index) = find_task_index_by_uid(&document.tasks, source_task_uid)
+                else {
+                    return;
+                };
+                let Some(target_task_index) = find_task_index_by_uid(&document.tasks, target_task_uid)
+                else {
+                    return;
+                };
+
+                let source_task = &document.tasks[source_task_index];
+                let target_task = &document.tasks[target_task_index];
+                if dependency_exists(document, source_task.uid, target_task.uid) {
+                    *dependency_picker = None;
+                    return;
+                }
+
+                *dependency_picker = Some(DependencyPickerState {
+                    original_document: state.original_document,
+                    source_task_uid: source_task.uid,
+                    target_task_uid: target_task.uid,
+                    relation: DependencyRelationChoice::FS,
+                    lag_text: "0".to_string(),
+                    popup_pos: Pos2::new(pointer.x + 12.0, pointer.y + 12.0),
+                    dirty_before: state.dirty_before,
+                });
+            }
+        }
+    }
 }
 
 impl eframe::App for GanttApp {
@@ -3903,10 +4423,16 @@ impl TaskEditorState {
 }
 
 #[derive(Clone)]
-struct RowGeometry {
+struct TaskBarGeometry {
+    task_uid: u32,
     start_x: f32,
     end_x: f32,
     center_y: f32,
+    bar_rect: Rect,
+    body_rect: Rect,
+    start_handle_rect: Option<Rect>,
+    finish_handle_rect: Option<Rect>,
+    link_handle_rect: Rect,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -4794,7 +5320,7 @@ fn draw_task_bar(
     px_per_day: f32,
     selected: bool,
     show_critical_path: bool,
-) -> RowGeometry {
+) -> TaskBarGeometry {
     let row_center_y = rect.center().y;
     let start_day = task.start.map(|dt| dt.date()).unwrap_or(range.start);
     let finish_day = task.finish.map(|dt| dt.date()).unwrap_or(start_day);
@@ -4826,27 +5352,9 @@ fn draw_task_bar(
         Color32::from_rgb(65, 103, 174)
     };
 
-    let mut baseline_rect = None;
-    if let (Some(baseline_start), Some(baseline_finish)) =
-        (task.baseline_start, task.baseline_finish)
-    {
-        let baseline_start_day = baseline_start.date();
-        let baseline_finish_day = baseline_finish.date();
-        let baseline_start_offset = (baseline_start_day - range.start).num_days().max(0) as f32;
-        let baseline_finish_offset =
-            (baseline_finish_day - range.start).num_days().max(0) as f32 + 1.0;
-        let baseline = Rect::from_min_max(
-            Pos2::new(
-                rect.left() + baseline_start_offset * px_per_day,
-                row_center_y - 7.0,
-            ),
-            Pos2::new(
-                rect.left() + baseline_finish_offset * px_per_day,
-                row_center_y - 5.0,
-            ),
-        );
+    let baseline_rect = task_baseline_rect(task, range, px_per_day, row_center_y, rect.left());
+    if let Some(baseline) = baseline_rect {
         painter.rect_filled(baseline, 0.0, BASELINE);
-        baseline_rect = Some(baseline);
     }
 
     let bar_rect = if task.milestone {
@@ -4920,20 +5428,105 @@ fn draw_task_bar(
         bar_rect
     };
 
-    draw_progress_actual_line(
-        painter,
-        task,
-        bar_rect,
-        baseline_rect,
-        selected,
-        show_critical_path,
+    let mut start_handle_rect = None;
+    let mut finish_handle_rect = None;
+    let body_rect = if task.milestone {
+        bar_rect
+    } else {
+        let handle_width = TASK_BAR_HANDLE_WIDTH.max(4.0);
+        let handle_height = TASK_BAR_HANDLE_HEIGHT.max(10.0);
+        let left = (bar_rect.left() + handle_width).min(bar_rect.right());
+        let right = (bar_rect.right() - handle_width).max(left);
+        let start_rect = Rect::from_center_size(
+            Pos2::new(bar_rect.left(), row_center_y),
+            Vec2::new(handle_width * 2.0, handle_height),
+        );
+        let finish_rect = Rect::from_center_size(
+            Pos2::new(bar_rect.right(), row_center_y),
+            Vec2::new(handle_width * 2.0, handle_height),
+        );
+        start_handle_rect = Some(start_rect);
+        finish_handle_rect = Some(finish_rect);
+        Rect::from_min_max(
+            Pos2::new(left, bar_rect.top()),
+            Pos2::new(right, bar_rect.bottom()),
+        )
+    };
+    let link_handle_rect = Rect::from_center_size(
+        Pos2::new(bar_rect.right() + TASK_BAR_LINK_HANDLE_GAP, row_center_y),
+        Vec2::new(TASK_BAR_HANDLE_WIDTH * 2.0, TASK_BAR_HANDLE_HEIGHT),
     );
 
-    RowGeometry {
+    if let Some(handle_rect) = start_handle_rect {
+        painter.circle_filled(
+            handle_rect.center(),
+            3.1,
+            if selected {
+                ACCENT
+            } else {
+                Color32::from_rgb(96, 128, 184)
+            },
+        );
+    }
+    if let Some(handle_rect) = finish_handle_rect {
+        painter.circle_filled(
+            handle_rect.center(),
+            3.1,
+            if selected {
+                ACCENT
+            } else {
+                Color32::from_rgb(96, 128, 184)
+            },
+        );
+    }
+    painter.circle_filled(
+        link_handle_rect.center(),
+        3.2,
+        if selected {
+            ACCENT
+        } else {
+            Color32::from_rgb(90, 90, 90)
+        },
+    );
+    painter.circle_stroke(
+        link_handle_rect.center(),
+        3.2,
+        Stroke::new(1.0, Color32::WHITE),
+    );
+
+    TaskBarGeometry {
+        task_uid: task.uid,
         start_x,
         end_x,
         center_y: row_center_y,
+        bar_rect,
+        body_rect,
+        start_handle_rect,
+        finish_handle_rect,
+        link_handle_rect,
     }
+}
+
+fn task_baseline_rect(
+    task: &GanttTask,
+    range: ChartRange,
+    px_per_day: f32,
+    row_center_y: f32,
+    left: f32,
+) -> Option<Rect> {
+    let (Some(baseline_start), Some(baseline_finish)) = (task.baseline_start, task.baseline_finish)
+    else {
+        return None;
+    };
+
+    let baseline_start_day = baseline_start.date();
+    let baseline_finish_day = baseline_finish.date();
+    let baseline_start_offset = (baseline_start_day - range.start).num_days().max(0) as f32;
+    let baseline_finish_offset = (baseline_finish_day - range.start).num_days().max(0) as f32 + 1.0;
+    Some(Rect::from_min_max(
+        Pos2::new(left + baseline_start_offset * px_per_day, row_center_y - 7.0),
+        Pos2::new(left + baseline_finish_offset * px_per_day, row_center_y - 5.0),
+    ))
 }
 
 fn progress_point_on_rect(rect: Rect, percent_complete: f32) -> Pos2 {
@@ -5158,7 +5751,7 @@ fn draw_timescale_header(ui: &mut egui::Ui, rect: Rect, range: ChartRange, px_pe
 
 fn draw_dependencies(
     painter: &egui::Painter,
-    row_geometries: &[RowGeometry],
+    row_geometries: &[TaskBarGeometry],
     task_by_uid: &HashMap<u32, usize>,
     dependencies: &[GanttDependency],
     selected_uid: Option<u32>,
@@ -5220,6 +5813,148 @@ fn find_task_by_uid<'a>(tasks: &'a [GanttTask], uid: u32) -> Option<&'a GanttTas
     tasks.iter().find(|task| task.uid == uid)
 }
 
+fn find_task_index_by_uid(tasks: &[GanttTask], uid: u32) -> Option<usize> {
+    tasks.iter().position(|task| task.uid == uid)
+}
+
+fn apply_task_drag_preview(
+    document: &mut ProjectDocument,
+    original_document: &ProjectDocument,
+    task_uid: u32,
+    kind: TaskDragKind,
+    delta_days: i64,
+) -> bool {
+    let Some(original_index) = find_task_index_by_uid(&original_document.tasks, task_uid) else {
+        return false;
+    };
+    let Some(current_index) = find_task_index_by_uid(&document.tasks, task_uid) else {
+        return false;
+    };
+
+    let original_task = &original_document.tasks[original_index];
+    let Some(current_task) = document.tasks.get_mut(current_index) else {
+        return false;
+    };
+
+    let Some(original_start) = original_task.start else {
+        return false;
+    };
+    let Some(original_finish) = original_task.finish else {
+        return false;
+    };
+
+    let (new_start, new_finish) = match kind {
+        TaskDragKind::Move => (
+            original_start + Duration::days(delta_days),
+            original_finish + Duration::days(delta_days),
+        ),
+        TaskDragKind::ResizeStart => {
+            let candidate = original_start + Duration::days(delta_days);
+            (candidate.min(original_finish), original_finish)
+        }
+        TaskDragKind::ResizeFinish => {
+            let candidate = original_finish + Duration::days(delta_days);
+            (original_start, candidate.max(original_start))
+        }
+    };
+
+    apply_task_date_change(current_task, new_start, new_finish)
+}
+
+fn apply_task_date_change(
+    task: &mut GanttTask,
+    start: chrono::NaiveDateTime,
+    finish: chrono::NaiveDateTime,
+) -> bool {
+    let start_text = start.format("%Y-%m-%dT%H:%M:%S").to_string();
+    let finish_text = finish.format("%Y-%m-%dT%H:%M:%S").to_string();
+    let changed = task.start != Some(start)
+        || task.finish != Some(finish)
+        || task.start_text != start_text
+        || task.finish_text != finish_text;
+
+    if changed {
+        task.start = Some(start);
+        task.finish = Some(finish);
+        task.start_text = start_text;
+        task.finish_text = finish_text;
+    }
+
+    changed
+}
+
+fn dependency_exists(document: &ProjectDocument, predecessor_uid: u32, successor_uid: u32) -> bool {
+    document
+        .dependencies
+        .iter()
+        .any(|dependency| dependency.predecessor_uid == predecessor_uid && dependency.successor_uid == successor_uid)
+}
+
+fn add_dependency_from_drag(
+    document: &mut ProjectDocument,
+    predecessor_uid: u32,
+    successor_uid: u32,
+    relation: DependencyRelationChoice,
+    lag_text: Option<String>,
+) -> bool {
+    if predecessor_uid == successor_uid || dependency_exists(document, predecessor_uid, successor_uid) {
+        return false;
+    }
+
+    document.dependencies.push(GanttDependency {
+        predecessor_uid,
+        successor_uid,
+        relation: relation.label().to_string(),
+        lag_text,
+    });
+    refresh_predecessor_text_for_task(document, successor_uid);
+    true
+}
+
+fn refresh_predecessor_text_for_task(document: &mut ProjectDocument, successor_uid: u32) {
+    let Some(task_index) = find_task_index_by_uid(&document.tasks, successor_uid) else {
+        return;
+    };
+
+    let mut assignments = document
+        .dependencies
+        .iter()
+        .filter(|dependency| dependency.successor_uid == successor_uid)
+        .map(|dependency| {
+            let predecessor_id = find_task_by_uid(&document.tasks, dependency.predecessor_uid)
+                .map(|task| task.id)
+                .unwrap_or(dependency.predecessor_uid);
+            let relation = if dependency.relation.trim().is_empty() {
+                "FS"
+            } else {
+                dependency.relation.trim()
+            };
+            let lag = dependency
+                .lag_text
+                .as_deref()
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            (predecessor_id, relation.to_string(), lag)
+        })
+        .collect::<Vec<_>>();
+    assignments.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+
+    let predecessor_text = assignments
+        .into_iter()
+        .map(|(predecessor_id, relation, lag)| {
+            if lag.is_empty() {
+                format!("{predecessor_id}{relation}")
+            } else {
+                format!("{predecessor_id}{relation} {lag}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    document.tasks[task_index].predecessor_text = predecessor_text;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -5273,6 +6008,8 @@ mod tests {
             }),
             sheet_editing_cell: None,
             sheet_selection_dragging: false,
+            chart_interaction: None,
+            dependency_picker: None,
             collapsed_task_uids: HashSet::new(),
             task_editor: TaskEditorState::default(),
             undo_stack: Vec::new(),
