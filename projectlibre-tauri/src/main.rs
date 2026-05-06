@@ -1,30 +1,22 @@
-mod commands;
+mod app;
 mod mspdi;
-mod session;
 
-use session::{ProjectAppState, ProjectSession};
 use std::path::PathBuf;
-use std::sync::Mutex;
 
-fn main() {
+fn main() -> eframe::Result<()> {
     let initial_file = std::env::args_os().nth(1).map(PathBuf::from);
-    let state = ProjectAppState {
-        session: Mutex::new(ProjectSession::new(initial_file)),
+    let native_options = eframe::NativeOptions {
+        viewport: eframe::egui::ViewportBuilder::default()
+            .with_decorations(true)
+            .with_inner_size([1366.0, 768.0])
+            .with_min_inner_size([1180.0, 720.0])
+            .with_title("MicroProject"),
+        ..Default::default()
     };
 
-    tauri::Builder::default()
-        .manage(state)
-        .invoke_handler(tauri::generate_handler![
-            commands::project_snapshot,
-            commands::project_open,
-            commands::project_save,
-            commands::project_save_as,
-            commands::project_upsert_task,
-            commands::project_delete_task,
-            commands::project_create_task,
-            commands::project_upsert_dependency,
-            commands::project_delete_dependency,
-        ])
-        .run(tauri::generate_context!())
-        .expect("failed to start MicroProject");
+    eframe::run_native(
+        "MicroProject",
+        native_options,
+        Box::new(move |cc| Ok(Box::new(app::GanttApp::new(cc, initial_file.clone())))),
+    )
 }

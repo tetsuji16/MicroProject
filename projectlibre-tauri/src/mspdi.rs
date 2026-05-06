@@ -152,6 +152,12 @@ pub struct ChartRange {
     pub end: NaiveDate,
 }
 
+impl ChartRange {
+    pub fn days(self) -> i64 {
+        (self.end - self.start).num_days().max(1)
+    }
+}
+
 pub fn load_project_document(path: &Path) -> Result<ProjectDocument, String> {
     let xml = read_to_string(path)
         .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
