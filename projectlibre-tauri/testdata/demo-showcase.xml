@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+  <Name>MicroProject Demo</Name>
+  <Title>MicroProject Showcase Schedule</Title>
+  <Manager>Demo Team</Manager>
+  <StartDate>2026-06-01T08:00:00</StartDate>
+  <FinishDate>2026-06-19T17:00:00</FinishDate>
+  <Calendars>
+    <Calendar>
+      <UID>1</UID>
+      <Name>Standard</Name>
+      <IsBaseCalendar>1</IsBaseCalendar>
+    </Calendar>
+  </Calendars>
+  <Tasks>
+    <Task>
+      <UID>1</UID>
+      <ID>1</ID>
+      <Name>Launch Prep</Name>
+      <OutlineLevel>1</OutlineLevel>
+      <Summary>1</Summary>
+      <Start>2026-06-01T08:00:00</Start>
+      <Finish>2026-06-12T17:00:00</Finish>
+      <Duration>PT80H0M0S</Duration>
+      <PercentComplete>45</PercentComplete>
+      <BaselineStart>2026-05-29T08:00:00</BaselineStart>
+      <BaselineFinish>2026-06-11T17:00:00</BaselineFinish>
+    </Task>
+    <Task>
+      <UID>2</UID>
+      <ID>2</ID>
+      <Name>Product Scope</Name>
+      <OutlineLevel>2</OutlineLevel>
+      <Summary>0</Summary>
+      <Start>2026-06-01T08:00:00</Start>
+      <Finish>2026-06-03T17:00:00</Finish>
+      <Duration>PT16H0M0S</Duration>
+      <PercentComplete>100</PercentComplete>
+      <BaselineStart>2026-05-29T08:00:00</BaselineStart>
+      <BaselineFinish>2026-06-02T17:00:00</BaselineFinish>
+    </Task>
+    <Task>
+      <UID>3</UID>
+      <ID>3</ID>
+      <Name>Design System</Name>
+      <OutlineLevel>2</OutlineLevel>
+      <Summary>0</Summary>
+      <Start>2026-06-04T08:00:00</Start>
+      <Finish>2026-06-08T17:00:00</Finish>
+      <Duration>PT32H0M0S</Duration>
+      <PercentComplete>70</PercentComplete>
+      <BaselineStart>2026-06-03T08:00:00</BaselineStart>
+      <BaselineFinish>2026-06-07T17:00:00</BaselineFinish>
+      <PredecessorLink>
+        <PredecessorUID>2</PredecessorUID>
+        <Type>FS</Type>
+        <LinkLag>0</LinkLag>
+      </PredecessorLink>
+    </Task>
+    <Task>
+      <UID>4</UID>
+      <ID>4</ID>
+      <Name>Implementation Sprint</Name>
+      <OutlineLevel>2</OutlineLevel>
+      <Summary>0</Summary>
+      <Start>2026-06-09T08:00:00</Start>
+      <Finish>2026-06-16T17:00:00</Finish>
+      <Duration>PT56H0M0S</Duration>
+      <PercentComplete>35</PercentComplete>
+      <BaselineStart>2026-06-08T08:00:00</BaselineStart>
+      <BaselineFinish>2026-06-15T17:00:00</BaselineFinish>
+      <PredecessorLink>
+        <PredecessorUID>3</PredecessorUID>
+        <Type>FS</Type>
+        <LinkLag>0</LinkLag>
+      </PredecessorLink>
+    </Task>
+    <Task>
+      <UID>5</UID>
+      <ID>5</ID>
+      <Name>QA Signoff</Name>
+      <OutlineLevel>2</OutlineLevel>
+      <Summary>0</Summary>
+      <Start>2026-06-17T08:00:00</Start>
+      <Finish>2026-06-18T17:00:00</Finish>
+      <Duration>PT16H0M0S</Duration>
+      <PercentComplete>20</PercentComplete>
+      <BaselineStart>2026-06-16T08:00:00</BaselineStart>
+      <BaselineFinish>2026-06-17T17:00:00</BaselineFinish>
+      <PredecessorLink>
+        <PredecessorUID>4</PredecessorUID>
+        <Type>FS</Type>
+        <LinkLag>0</LinkLag>
+      </PredecessorLink>
+    </Task>
+    <Task>
+      <UID>6</UID>
+      <ID>6</ID>
+      <Name>Launch Milestone</Name>
+      <OutlineLevel>2</OutlineLevel>
+      <Summary>0</Summary>
+      <Milestone>1</Milestone>
+      <Start>2026-06-19T08:00:00</Start>
+      <Finish>2026-06-19T08:00:00</Finish>
+      <Duration>PT0H0M0S</Duration>
+      <PercentComplete>0</PercentComplete>
+      <PredecessorLink>
+        <PredecessorUID>5</PredecessorUID>
+        <Type>FS</Type>
+        <LinkLag>0</LinkLag>
+      </PredecessorLink>
+    </Task>
+  </Tasks>
+</Project>
