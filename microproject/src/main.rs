@@ -1,4 +1,5 @@
 mod app;
+mod dependency;
 mod mspdi;
 
 use std::path::PathBuf;

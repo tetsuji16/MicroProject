@@ -1,5 +1,7 @@
-Contributing
-- This project currently exists in a bridge-first migration stage: Java ProjectLibre stays authoritative while Rust/Tauri becomes the host shell.
-- Before contributing, please read [JAVA_BRIDGE.md](./JAVA_BRIDGE.md), [ROADMAP.md](./ROADMAP.md), and [NOTICE](./NOTICE) for licensing and migration goals.
-- How to contribute: open issues, submit PRs to `main` or the active migration branch, and keep changes small enough to compare against the Java reference.
-- Prefer fixes that preserve MS Project compatibility, even if that means leaving a feature implemented in Java for one more slice.
+# Contributing
+
+- This project is a Rust desktop viewer for Microsoft Project XML files.
+- Before contributing, read [README.md](./README.md), [ROADMAP.md](./ROADMAP.md), and [NOTICE](./NOTICE).
+- Keep changes small enough to test against the sample Project XML files in the repo.
+- Prefer fixes that preserve import reliability, rendering clarity, and Windows usability.
+- When adding fields, keep the parser tolerant of unsupported XML so existing files still load.

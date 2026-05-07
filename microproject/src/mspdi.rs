@@ -1,8 +1,8 @@
 use chrono::{NaiveDate, NaiveDateTime};
+use quick_xml::de::from_str;
 use quick_xml::se::to_string;
-use serde::Serialize;
-use std::fs::read_to_string;
-use std::fs::write;
+use serde::{Deserialize, Serialize};
+use std::fs::{read_to_string, write};
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -17,94 +17,134 @@ pub struct ProjectDocument {
     pub dependencies: Vec<GanttDependency>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename = "Project")]
-struct ProjectXmlOut {
-    #[serde(rename = "@xmlns")]
-    xmlns: &'static str,
-    #[serde(rename = "Name")]
-    name: String,
-    #[serde(rename = "Title", skip_serializing_if = "Option::is_none")]
-    title: Option<String>,
-    #[serde(rename = "Manager", skip_serializing_if = "Option::is_none")]
-    manager: Option<String>,
-    #[serde(rename = "StartDate", skip_serializing_if = "Option::is_none")]
-    start_date: Option<String>,
-    #[serde(rename = "FinishDate", skip_serializing_if = "Option::is_none")]
-    finish_date: Option<String>,
-    #[serde(rename = "Calendars", skip_serializing_if = "Option::is_none")]
-    calendars: Option<CalendarsXmlOut>,
-    #[serde(rename = "Tasks")]
-    tasks: TasksXmlOut,
-}
-
-#[derive(Debug, Serialize)]
-struct CalendarsXmlOut {
-    #[serde(rename = "Calendar", default)]
-    calendars: Vec<CalendarXmlOut>,
-}
-
-#[derive(Debug, Serialize)]
-struct CalendarXmlOut {
-    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
+struct ProjectXml {
+    #[serde(rename = "@xmlns", default, skip_serializing_if = "Option::is_none")]
+    xmlns: Option<String>,
+    #[serde(rename = "Name", default, skip_serializing_if = "Option::is_none")]
     name: Option<String>,
-    #[serde(rename = "IsBaseCalendar", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Title", default, skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
+    #[serde(rename = "Manager", default, skip_serializing_if = "Option::is_none")]
+    manager: Option<String>,
+    #[serde(rename = "StartDate", default, skip_serializing_if = "Option::is_none")]
+    start_date: Option<String>,
+    #[serde(
+        rename = "FinishDate",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    finish_date: Option<String>,
+    #[serde(rename = "Calendars", default, skip_serializing_if = "Option::is_none")]
+    calendars: Option<CalendarsXml>,
+    #[serde(rename = "Tasks", default)]
+    tasks: TasksXml,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CalendarsXml {
+    #[serde(rename = "Calendar", default)]
+    calendars: Vec<CalendarXml>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CalendarXml {
+    #[serde(rename = "Name", default, skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(
+        rename = "IsBaseCalendar",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     base_calendar: Option<u8>,
 }
 
-#[derive(Debug, Serialize)]
-struct TasksXmlOut {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct TasksXml {
     #[serde(rename = "Task", default)]
-    tasks: Vec<TaskXmlOut>,
+    tasks: Vec<TaskXml>,
 }
 
-#[derive(Debug, Serialize)]
-struct TaskXmlOut {
-    #[serde(rename = "UID")]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct TaskXml {
+    #[serde(rename = "UID", default)]
     uid: u32,
-    #[serde(rename = "ID")]
+    #[serde(rename = "ID", default)]
     id: u32,
-    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Name", default, skip_serializing_if = "Option::is_none")]
     name: Option<String>,
-    #[serde(rename = "OutlineLevel", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OutlineLevel",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     outline_level: Option<u32>,
-    #[serde(rename = "Summary", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Summary", default, skip_serializing_if = "Option::is_none")]
     summary: Option<u8>,
-    #[serde(rename = "Milestone", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Milestone", default, skip_serializing_if = "Option::is_none")]
     milestone: Option<u8>,
-    #[serde(rename = "Critical", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Critical", default, skip_serializing_if = "Option::is_none")]
     critical: Option<u8>,
-    #[serde(rename = "PercentComplete", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PercentComplete",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     percent_complete: Option<f32>,
-    #[serde(rename = "Start", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Start", default, skip_serializing_if = "Option::is_none")]
     start: Option<String>,
-    #[serde(rename = "Finish", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Finish", default, skip_serializing_if = "Option::is_none")]
     finish: Option<String>,
-    #[serde(rename = "BaselineStart", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BaselineStart",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     baseline_start: Option<String>,
-    #[serde(rename = "BaselineFinish", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BaselineFinish",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     baseline_finish: Option<String>,
-    #[serde(rename = "Duration", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Duration", default, skip_serializing_if = "Option::is_none")]
     duration: Option<String>,
-    #[serde(rename = "Notes", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Notes", default, skip_serializing_if = "Option::is_none")]
     notes: Option<String>,
-    #[serde(rename = "ResourceNames", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ResourceNames",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     resource_names: Option<String>,
-    #[serde(rename = "CalendarUID", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CalendarUID",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     calendar_uid: Option<u32>,
-    #[serde(rename = "ConstraintType", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ConstraintType",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     constraint_type: Option<String>,
     #[serde(rename = "PredecessorLink", default)]
-    predecessor_links: Vec<PredecessorLinkXmlOut>,
+    predecessor_links: Vec<PredecessorLinkXml>,
 }
 
-#[derive(Debug, Serialize)]
-struct PredecessorLinkXmlOut {
-    #[serde(rename = "PredecessorUID")]
-    predecessor_uid: u32,
-    #[serde(rename = "Type")]
-    relation: String,
-    #[serde(rename = "LinkLag", skip_serializing_if = "Option::is_none")]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct PredecessorLinkXml {
+    #[serde(
+        rename = "PredecessorUID",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    predecessor_uid: Option<u32>,
+    #[serde(rename = "Type", default, skip_serializing_if = "Option::is_none")]
+    relation: Option<String>,
+    #[serde(rename = "LinkLag", default, skip_serializing_if = "Option::is_none")]
     lag: Option<String>,
 }
 
@@ -161,35 +201,35 @@ impl ChartRange {
 pub fn load_project_document(path: &Path) -> Result<ProjectDocument, String> {
     let xml = read_to_string(path)
         .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
-    let xml = xml.trim_start_matches(char::is_whitespace);
-    let doc = roxmltree::Document::parse(xml)
-        .map_err(|error| format!("failed to parse {}: {error}", path.display()))?;
-    Ok(convert(&doc, path))
+    let xml = xml.trim_start_matches(|ch: char| ch.is_whitespace() || ch == '\u{feff}');
+    let project: ProjectXml =
+        from_str(xml).map_err(|error| format!("failed to parse {}: {error}", path.display()))?;
+    Ok(convert(project, path))
 }
 
 pub fn save_project_document(path: &Path, document: &ProjectDocument) -> Result<(), String> {
-    let xml = ProjectXmlOut {
-        xmlns: "http://schemas.microsoft.com/project",
-        name: document.name.clone(),
+    let project = ProjectXml {
+        xmlns: Some("http://schemas.microsoft.com/project".to_string()),
+        name: Some(document.name.clone()),
         title: document.title.clone(),
         manager: document.manager.clone(),
         start_date: document.start_date.map(format_date_time),
         finish_date: document.finish_date.map(format_date_time),
-        calendars: (!document.calendars.is_empty()).then(|| CalendarsXmlOut {
+        calendars: (!document.calendars.is_empty()).then(|| CalendarsXml {
             calendars: document
                 .calendars
                 .iter()
-                .map(|calendar| CalendarXmlOut {
+                .map(|calendar| CalendarXml {
                     name: Some(calendar.name.clone()),
                     base_calendar: Some(if calendar.base_calendar { 1 } else { 0 }),
                 })
                 .collect(),
         }),
-        tasks: TasksXmlOut {
+        tasks: TasksXml {
             tasks: document
                 .tasks
                 .iter()
-                .map(|task| TaskXmlOut {
+                .map(|task| TaskXml {
                     uid: task.uid,
                     id: task.id,
                     name: (!task.name.trim().is_empty()).then(|| task.name.clone()),
@@ -221,9 +261,9 @@ pub fn save_project_document(path: &Path, document: &ProjectDocument) -> Result<
                         .dependencies
                         .iter()
                         .filter(|dependency| dependency.successor_uid == task.uid)
-                        .map(|dependency| PredecessorLinkXmlOut {
-                            predecessor_uid: dependency.predecessor_uid,
-                            relation: dependency.relation.clone(),
+                        .map(|dependency| PredecessorLinkXml {
+                            predecessor_uid: Some(dependency.predecessor_uid),
+                            relation: Some(dependency.relation.clone()),
                             lag: dependency.lag_text.clone(),
                         })
                         .collect(),
@@ -234,7 +274,7 @@ pub fn save_project_document(path: &Path, document: &ProjectDocument) -> Result<
 
     let mut rendered = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     rendered.push_str(
-        &to_string(&xml)
+        &to_string(&project)
             .map_err(|error| format!("failed to serialize {}: {error}", path.display()))?,
     );
     rendered.push('\n');
@@ -242,35 +282,26 @@ pub fn save_project_document(path: &Path, document: &ProjectDocument) -> Result<
     write(path, rendered).map_err(|error| format!("failed to write {}: {error}", path.display()))
 }
 
-fn convert(doc: &roxmltree::Document<'_>, path: &Path) -> ProjectDocument {
-    let root = doc
-        .descendants()
-        .find(|node| node.is_element() && node.tag_name().name() == "Project")
-        .unwrap_or_else(|| doc.root_element());
-
+fn convert(project: ProjectXml, path: &Path) -> ProjectDocument {
     let fallback_name = path
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or("Untitled Project")
         .to_string();
-    let name = text_child(root, "Name").unwrap_or_else(|| fallback_name.clone());
-    let title = text_child(root, "Title").or_else(|| Some(name.clone()));
-    let manager = text_child(root, "Manager");
-    let start_date = parse_date_time(text_child(root, "StartDate").as_deref());
-    let finish_date = parse_date_time(text_child(root, "FinishDate").as_deref());
-    let calendars = root
-        .children()
-        .find(|node| node.is_element() && node.tag_name().name() == "Calendars")
+    let name = project.name.unwrap_or_else(|| fallback_name.clone());
+    let title = project.title.or_else(|| Some(name.clone()));
+    let manager = project.manager;
+    let start_date = parse_date_time(project.start_date.as_deref());
+    let finish_date = parse_date_time(project.finish_date.as_deref());
+    let calendars = project
+        .calendars
         .map(|wrapper| {
             wrapper
-                .children()
-                .filter(|node| node.is_element() && node.tag_name().name() == "Calendar")
+                .calendars
+                .into_iter()
                 .map(|calendar| CalendarInfo {
-                    name: text_child(calendar, "Name").unwrap_or_else(|| "Calendar".to_string()),
-                    base_calendar: text_child(calendar, "IsBaseCalendar")
-                        .and_then(|text| text.parse::<u8>().ok())
-                        .unwrap_or(0)
-                        != 0,
+                    name: calendar.name.unwrap_or_else(|| "Calendar".to_string()),
+                    base_calendar: calendar.base_calendar.unwrap_or(0) != 0,
                 })
                 .collect::<Vec<_>>()
         })
@@ -279,92 +310,55 @@ fn convert(doc: &roxmltree::Document<'_>, path: &Path) -> ProjectDocument {
     let mut tasks = Vec::new();
     let mut dependencies = Vec::new();
 
-    if let Some(task_wrapper) = root
-        .children()
-        .find(|node| node.is_element() && node.tag_name().name() == "Tasks")
-    {
-        for task in task_wrapper
-            .children()
-            .filter(|node| node.is_element() && node.tag_name().name() == "Task")
-        {
-            let uid = text_child(task, "UID")
-                .and_then(|text| text.parse::<u32>().ok())
-                .unwrap_or(0);
-            let id = text_child(task, "ID")
-                .and_then(|text| text.parse::<u32>().ok())
-                .unwrap_or(uid);
-            let start_text = text_child(task, "Start").unwrap_or_default();
-            let finish_text = text_child(task, "Finish").unwrap_or_default();
-            let baseline_start_text = text_child(task, "BaselineStart").unwrap_or_default();
-            let baseline_finish_text = text_child(task, "BaselineFinish").unwrap_or_default();
-            let start = parse_date_time(Some(start_text.as_str()));
-            let finish = parse_date_time(Some(finish_text.as_str()));
-            let baseline_start = parse_date_time(Some(baseline_start_text.as_str()));
-            let baseline_finish = parse_date_time(Some(baseline_finish_text.as_str()));
-            let predecessor_links = task
-                .children()
-                .filter(|node| node.is_element() && node.tag_name().name() == "PredecessorLink")
-                .map(|link| PredecessorLinkData {
-                    predecessor_uid: text_child(link, "PredecessorUID")
-                        .and_then(|text| text.parse::<u32>().ok()),
-                    relation: text_child(link, "Type"),
-                    lag: text_child(link, "LinkLag"),
-                })
-                .collect::<Vec<_>>();
-            let predecessor_text = predecessor_links
-                .iter()
-                .map(format_predecessor_link_data)
-                .collect::<Vec<_>>()
-                .join(", ");
+    for task in project.tasks.tasks {
+        let start_text = task.start.unwrap_or_default();
+        let finish_text = task.finish.unwrap_or_default();
+        let baseline_start_text = task.baseline_start.unwrap_or_default();
+        let baseline_finish_text = task.baseline_finish.unwrap_or_default();
+        let start = parse_date_time(Some(start_text.as_str()));
+        let finish = parse_date_time(Some(finish_text.as_str()));
+        let baseline_start = parse_date_time(Some(baseline_start_text.as_str()));
+        let baseline_finish = parse_date_time(Some(baseline_finish_text.as_str()));
+        let predecessor_text = task
+            .predecessor_links
+            .iter()
+            .map(format_predecessor_link_data)
+            .collect::<Vec<_>>()
+            .join(", ");
 
-            for link in predecessor_links {
-                if let Some(predecessor_uid) = link.predecessor_uid {
-                    dependencies.push(GanttDependency {
-                        predecessor_uid,
-                        successor_uid: uid,
-                        relation: link.relation.unwrap_or_else(|| "FS".to_string()),
-                        lag_text: link.lag.clone(),
-                    });
-                }
+        for link in task.predecessor_links {
+            if let Some(predecessor_uid) = link.predecessor_uid {
+                dependencies.push(GanttDependency {
+                    predecessor_uid,
+                    successor_uid: task.uid,
+                    relation: link.relation.unwrap_or_else(|| "FS".to_string()),
+                    lag_text: link.lag,
+                });
             }
-
-            tasks.push(GanttTask {
-                uid,
-                id,
-                name: text_child(task, "Name").unwrap_or_default(),
-                outline_level: text_child(task, "OutlineLevel")
-                    .and_then(|text| text.parse::<u32>().ok())
-                    .unwrap_or(1),
-                summary: text_child(task, "Summary")
-                    .and_then(|text| text.parse::<u8>().ok())
-                    .unwrap_or(0)
-                    != 0,
-                milestone: text_child(task, "Milestone")
-                    .and_then(|text| text.parse::<u8>().ok())
-                    .unwrap_or(0)
-                    != 0,
-                critical: text_child(task, "Critical")
-                    .and_then(|text| text.parse::<u8>().ok())
-                    .unwrap_or(0)
-                    != 0,
-                percent_complete: text_child(task, "PercentComplete")
-                    .and_then(|text| text.parse::<f32>().ok())
-                    .unwrap_or(0.0),
-                start_text,
-                finish_text,
-                start,
-                finish,
-                baseline_start,
-                baseline_finish,
-                duration_text: text_child(task, "Duration").unwrap_or_default(),
-                predecessor_text,
-                notes_text: text_child(task, "Notes"),
-                resource_names: text_child(task, "ResourceNames"),
-                calendar_uid: text_child(task, "CalendarUID")
-                    .and_then(|text| text.parse::<u32>().ok()),
-                constraint_type: text_child(task, "ConstraintType"),
-            });
         }
+
+        tasks.push(GanttTask {
+            uid: task.uid,
+            id: if task.id == 0 { task.uid } else { task.id },
+            name: task.name.unwrap_or_default(),
+            outline_level: task.outline_level.unwrap_or(1).max(1),
+            summary: task.summary.unwrap_or(0) != 0,
+            milestone: task.milestone.unwrap_or(0) != 0,
+            critical: task.critical.unwrap_or(0) != 0,
+            percent_complete: task.percent_complete.unwrap_or(0.0),
+            start_text,
+            finish_text,
+            start,
+            finish,
+            baseline_start,
+            baseline_finish,
+            duration_text: task.duration.unwrap_or_default(),
+            predecessor_text,
+            notes_text: task.notes,
+            resource_names: task.resource_names,
+            calendar_uid: task.calendar_uid,
+            constraint_type: task.constraint_type,
+        });
     }
 
     ProjectDocument {
@@ -403,22 +397,7 @@ pub fn parse_date_time(text: Option<&str>) -> Option<NaiveDateTime> {
         .and_then(|date| date.and_hms_opt(0, 0, 0))
 }
 
-#[derive(Debug, Clone)]
-struct PredecessorLinkData {
-    predecessor_uid: Option<u32>,
-    relation: Option<String>,
-    lag: Option<String>,
-}
-
-fn text_child(node: roxmltree::Node<'_, '_>, name: &str) -> Option<String> {
-    node.children()
-        .find(|child| child.is_element() && child.tag_name().name() == name)
-        .and_then(|child| child.text())
-        .map(|text| text.trim().to_string())
-        .filter(|text| !text.is_empty())
-}
-
-fn format_predecessor_link_data(link: &PredecessorLinkData) -> String {
+fn format_predecessor_link_data(link: &PredecessorLinkXml) -> String {
     let relation = link.relation.as_deref().unwrap_or("FS");
     let lag = link.lag.as_deref().unwrap_or("").trim();
     if lag.is_empty() {
@@ -458,7 +437,8 @@ impl ProjectDocument {
         } else {
             let min = dates.iter().min().copied().unwrap_or(today);
             let max = dates.iter().max().copied().unwrap_or(today);
-            let start = min.pred_opt().unwrap_or(min);
+            // 終了日に1日の余白を設定（視認性向上のため）
+            let start = min;
             let end = max.succ_opt().unwrap_or(max);
             (start, end)
         };
@@ -539,7 +519,7 @@ mod tests {
         assert_eq!(document.tasks[1].predecessor_text, "FS 0");
         assert_eq!(
             document.chart_range().start,
-            NaiveDate::from_ymd_opt(2026, 5, 5).unwrap()
+            NaiveDate::from_ymd_opt(2026, 5, 6).unwrap()
         );
     }
 

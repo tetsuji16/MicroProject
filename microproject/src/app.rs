@@ -1,24 +1,28 @@
+use crate::dependency::{
+    add_dependency_from_drag, dependency_exists, refresh_predecessor_text_for_task,
+};
 use crate::mspdi::{parse_date_time, ChartRange, GanttDependency, GanttTask, ProjectDocument};
 use chrono::{Datelike, Duration};
 use eframe::egui::{
     self, Align, Color32, Event, FontData, FontDefinitions, FontFamily, FontId, Pos2, Rect,
     RichText, Sense, Stroke, Vec2,
 };
+// egui_extras imports will be used when TableBuilder version is enabled
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const BODY_ROW_HEIGHT: f32 = 21.0;
-const HEADER_HEIGHT: f32 = 42.0;
-const SHEET_ROW_HEADER_WIDTH: f32 = 42.0;
-const SHEET_NAME_WIDTH: f32 = 180.0;
-const SHEET_DURATION_WIDTH: f32 = 72.0;
-const SHEET_DATE_WIDTH: f32 = 92.0;
-const SHEET_PERCENT_WIDTH: f32 = 74.0;
-const SHEET_PREDECESSOR_WIDTH: f32 = 122.0;
-const SHEET_CELL_PADDING_X: f32 = 6.0;
-const SHEET_CELL_PADDING_Y: f32 = 2.0;
+const BODY_ROW_HEIGHT: f32 = 24.0;
+const HEADER_HEIGHT: f32 = 44.0;
+const SHEET_ROW_HEADER_WIDTH: f32 = 44.0;
+const SHEET_NAME_WIDTH: f32 = 220.0;
+const SHEET_DURATION_WIDTH: f32 = 80.0;
+const SHEET_DATE_WIDTH: f32 = 100.0;
+const SHEET_PERCENT_WIDTH: f32 = 80.0;
+const SHEET_PREDECESSOR_WIDTH: f32 = 130.0;
+const SHEET_CELL_PADDING_X: f32 = 8.0;
+const SHEET_CELL_PADDING_Y: f32 = 4.0;
 const APP_BG: Color32 = Color32::from_rgb(212, 208, 200);
 const PANEL_BG: Color32 = Color32::from_rgb(236, 233, 216);
 const SHEET_BG: Color32 = Color32::from_rgb(255, 255, 255);
@@ -39,15 +43,8 @@ const SHEET_ACTIVE_BORDER: Color32 = Color32::from_rgb(0, 84, 147);
 const TITLE_BAR_BG: Color32 = Color32::from_rgb(10, 36, 106);
 const TITLE_BAR_BG_DARK: Color32 = Color32::from_rgb(4, 22, 78);
 const TITLE_BAR_TEXT: Color32 = Color32::from_rgb(248, 248, 248);
-const OFFICE_GREEN: Color32 = Color32::from_rgb(45, 131, 50);
 const OFFICE_GREEN_DARK: Color32 = Color32::from_rgb(24, 93, 31);
-const OFFICE_PURPLE: Color32 = Color32::from_rgb(150, 82, 195);
-const OFFICE_PURPLE_BG: Color32 = Color32::from_rgb(245, 239, 251);
 const RIBBON_CHROME_BG: Color32 = Color32::from_rgb(236, 233, 216);
-const TAB_BG: Color32 = Color32::from_rgb(236, 233, 216);
-const TAB_ACTIVE_BG: Color32 = Color32::from_rgb(250, 250, 245);
-const TIMELINE_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
-const TIMELINE_FILL: Color32 = Color32::from_rgb(236, 233, 216);
 const TEXT: Color32 = Color32::from_rgb(30, 30, 30);
 const SUBTEXT: Color32 = Color32::from_rgb(78, 78, 78);
 const ACCENT: Color32 = Color32::from_rgb(0, 84, 147);
@@ -99,23 +96,9 @@ fn configure_fonts(ctx: &egui::Context) {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum RibbonTab {
-    File,
-    Task,
-    Resource,
-    Report,
-    Project,
-    View,
-    Developer,
-    Format,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
 enum RibbonIcon {
     Open,
     Save,
-    Recent,
-    Apply,
     Undo,
     Redo,
     ZoomIn,
@@ -290,7 +273,6 @@ pub struct GanttApp {
     task_editor: TaskEditorState,
     undo_stack: Vec<UndoState>,
     redo_stack: Vec<UndoState>,
-    active_ribbon_tab: RibbonTab,
 }
 
 #[derive(Clone, Default)]
@@ -367,7 +349,6 @@ impl GanttApp {
             task_editor: TaskEditorState::default(),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
-            active_ribbon_tab: RibbonTab::File,
         };
 
         if let Some(path) = initial_file {
@@ -795,7 +776,7 @@ impl GanttApp {
             let Some(document) = self.document.as_mut() else {
                 return;
             };
-            let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
+            let normalized = Self::normalize_excel_clipboard_text(&text);
             let rows = Self::parse_tsv_rows(&normalized);
             if rows.is_empty() {
                 return;
@@ -818,7 +799,8 @@ impl GanttApp {
                     continue;
                 }
 
-                if Self::apply_excel_row(document, task_index, start_column, &row[source_offset..]) {
+                if Self::apply_excel_row(document, task_index, start_column, &row[source_offset..])
+                {
                     changed = true;
                     row_count += 1;
                 }
@@ -968,6 +950,11 @@ impl GanttApp {
             return previous != document.dependencies.len();
         }
 
+        let previous_text = document
+            .tasks
+            .get(index)
+            .map(|task| task.predecessor_text.clone())
+            .unwrap_or_default();
         let mut text_changed = false;
         if let Some(task) = document.tasks.get_mut(index) {
             if task.predecessor_text != trimmed {
@@ -982,6 +969,7 @@ impl GanttApp {
         }
 
         let mut resolved_dependencies = Vec::new();
+        let mut seen_predecessors = HashSet::new();
 
         for assignment in parsed {
             let Some(predecessor_uid) =
@@ -989,6 +977,9 @@ impl GanttApp {
             else {
                 continue;
             };
+            if !seen_predecessors.insert(predecessor_uid) {
+                continue;
+            }
             resolved_dependencies.push(GanttDependency {
                 predecessor_uid,
                 successor_uid: task_uid,
@@ -1005,10 +996,9 @@ impl GanttApp {
             .dependencies
             .retain(|dep| dep.successor_uid != task_uid);
         document.dependencies.extend(resolved_dependencies);
-
-        if let Some(task) = document.tasks.get_mut(index) {
-            if task.predecessor_text != trimmed {
-                task.predecessor_text = trimmed.to_string();
+        refresh_predecessor_text_for_task(document, task_uid);
+        if let Some(task) = document.tasks.get(index) {
+            if task.predecessor_text != previous_text {
                 text_changed = true;
             }
         }
@@ -1657,28 +1647,6 @@ impl GanttApp {
                     Stroke::new(1.6, blue),
                 );
             }
-            RibbonIcon::Recent => {
-                painter.circle_stroke(rect.center(), 7.0, Stroke::new(1.6, gray));
-                painter.line_segment(
-                    [Pos2::new(cx, cy), Pos2::new(cx, cy - 3.8)],
-                    Stroke::new(1.6, gray),
-                );
-                painter.line_segment(
-                    [Pos2::new(cx, cy), Pos2::new(cx + 2.8, cy + 1.8)],
-                    Stroke::new(1.6, gray),
-                );
-            }
-            RibbonIcon::Apply => {
-                painter.circle_filled(rect.center(), 8.5, green);
-                painter.line_segment(
-                    [Pos2::new(x1 + 6.0, cy + 0.5), Pos2::new(cx - 0.5, y2 - 5.0)],
-                    Stroke::new(2.0, Color32::WHITE),
-                );
-                painter.line_segment(
-                    [Pos2::new(cx - 0.5, y2 - 5.0), Pos2::new(x2 - 5.0, y1 + 6.0)],
-                    Stroke::new(2.0, Color32::WHITE),
-                );
-            }
             RibbonIcon::Undo => {
                 painter.circle_stroke(rect.center(), 7.5, Stroke::new(1.5, orange));
                 painter.line_segment(
@@ -1948,12 +1916,14 @@ impl GanttApp {
             let Some(state) = self.dependency_picker.as_mut() else {
                 return;
             };
-            let source_name = find_task_by_uid(&state.original_document.tasks, state.source_task_uid)
-                .map(|task| task.name.clone())
-                .unwrap_or_else(|| "Source".to_string());
-            let target_name = find_task_by_uid(&state.original_document.tasks, state.target_task_uid)
-                .map(|task| task.name.clone())
-                .unwrap_or_else(|| "Target".to_string());
+            let source_name =
+                find_task_by_uid(&state.original_document.tasks, state.source_task_uid)
+                    .map(|task| task.name.clone())
+                    .unwrap_or_else(|| "Source".to_string());
+            let target_name =
+                find_task_by_uid(&state.original_document.tasks, state.target_task_uid)
+                    .map(|task| task.name.clone())
+                    .unwrap_or_else(|| "Target".to_string());
 
             egui::Window::new("依存関係を追加")
                 .collapsible(false)
@@ -2018,7 +1988,7 @@ impl GanttApp {
             document,
             state.source_task_uid,
             state.target_task_uid,
-            state.relation,
+            state.relation.label().to_string(),
             lag_text,
         );
         if !added {
@@ -2048,234 +2018,30 @@ impl GanttApp {
     }
 
     fn landing_view(ui: &mut egui::Ui, recent_files: &[PathBuf]) {
-        egui::Frame::default()
-            .fill(Color32::from_rgb(250, 252, 255))
-            .show(ui, |ui| {
-                ui.add_space(36.0);
-                ui.vertical_centered(|ui| {
-                    ui.label(
-                        RichText::new("MS Project XML ファイルを開く")
-                            .font(FontId::new(18.0, FontFamily::Proportional))
-                            .strong(),
-                    );
-                    ui.add_space(4.0);
-                    ui.label("このビューアーはタスク表、ガントチャート、詳細ペインを表示します。");
-                    ui.add_space(10.0);
-                    ui.label(RichText::new("最近使ったファイル").strong());
-                    if recent_files.is_empty() {
-                        ui.label(RichText::new("まだありません").color(SUBTEXT));
-                    } else {
-                        for path in recent_files {
-                            ui.label(path.display().to_string());
-                        }
+        let rect = ui.max_rect();
+        ui.painter()
+            .rect_filled(rect, 0.0, Color32::from_rgb(250, 252, 255));
+        ui.allocate_ui_at_rect(rect, |ui| {
+            ui.add_space(36.0);
+            ui.vertical_centered(|ui| {
+                ui.label(
+                    RichText::new("MS Project XML ファイルを開く")
+                        .font(FontId::new(18.0, FontFamily::Proportional))
+                        .strong(),
+                );
+                ui.add_space(4.0);
+                ui.label("このビューアーはタスク表、ガントチャート、詳細ペインを表示します。");
+                ui.add_space(10.0);
+                ui.label(RichText::new("最近使ったファイル").strong());
+                if recent_files.is_empty() {
+                    ui.label(RichText::new("まだありません").color(SUBTEXT));
+                } else {
+                    for path in recent_files {
+                        ui.label(path.display().to_string());
                     }
-                });
+                }
             });
-    }
-
-    fn document_header(
-        ui: &mut egui::Ui,
-        document: &ProjectDocument,
-        visible_indices: &[usize],
-        chart_range: ChartRange,
-    ) {
-        let calendar_count = document.calendars.len();
-        let base_calendar_count = document
-            .calendars
-            .iter()
-            .filter(|calendar| calendar.base_calendar)
-            .count();
-        let task_count = document.tasks.len();
-        let dep_count = document.dependencies.len();
-        let visible_count = visible_indices.len();
-
-        egui::Frame::default()
-            .fill(Color32::from_rgb(250, 252, 255))
-            .stroke(Stroke::new(1.0, BORDER))
-            .inner_margin(egui::Margin::symmetric(3, 2))
-            .show(ui, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    ui.label(
-                        RichText::new(document.title.as_deref().unwrap_or(&document.name))
-                            .font(FontId::new(14.0, FontFamily::Proportional))
-                            .strong(),
-                    );
-                    ui.separator();
-                    ui.label(format!("タスク: {task_count}"));
-                    ui.label(format!("表示: {visible_count}"));
-                    ui.label(format!("依存関係: {dep_count}"));
-                    if calendar_count > 0 {
-                        ui.label(format!(
-                            "カレンダー: {calendar_count} ({base_calendar_count} ベース)"
-                        ));
-                    } else {
-                        ui.label("カレンダー: 0");
-                    }
-                    ui.label(format!(
-                        "期間: {} - {}",
-                        chart_range.start.format("%Y-%m-%d"),
-                        chart_range.end.format("%Y-%m-%d")
-                    ));
-                    if let Some(manager) = &document.manager {
-                        ui.label(format!("管理者: {manager}"));
-                    }
-                });
-            });
-    }
-
-    fn render_toolbar_strip(
-        ui: &mut egui::Ui,
-        document: &mut ProjectDocument,
-        visible_indices: &[usize],
-    ) {
-        egui::Frame::default()
-            .fill(Color32::from_rgb(250, 252, 255))
-            .stroke(Stroke::new(1.0, BORDER))
-            .inner_margin(egui::Margin::symmetric(3, 2))
-            .show(ui, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    ui.label(RichText::new("タスク一覧").strong());
-                    ui.separator();
-                    ui.label(format!("行: {}", visible_indices.len()));
-                    ui.separator();
-                    ui.label(format!("合計: {}", document.tasks.len()));
-                    ui.separator();
-                    ui.label("要約タスクの矢印で折りたたみ / 展開");
-                });
-            });
-    }
-
-    fn task_mode_strip(&mut self, ui: &mut egui::Ui) {
-        let (rect, _) =
-            ui.allocate_exact_size(Vec2::new(ui.available_width(), 36.0), Sense::hover());
-        let painter = ui.painter_at(rect);
-        painter.rect_filled(rect, 0.0, Color32::WHITE);
-        painter.rect_stroke(
-            rect,
-            0.0,
-            Stroke::new(1.0, BORDER),
-            egui::StrokeKind::Inside,
-        );
-
-        let chip_y = rect.center().y + 1.0;
-        draw_mode_chip(
-            &painter,
-            Rect::from_min_size(
-                Pos2::new(rect.left() + 10.0, chip_y - 10.0),
-                Vec2::new(20.0, 20.0),
-            ),
-            Color32::from_rgb(198, 68, 68),
-            "✕",
-        );
-        draw_mode_chip(
-            &painter,
-            Rect::from_min_size(
-                Pos2::new(rect.left() + 34.0, chip_y - 10.0),
-                Vec2::new(20.0, 20.0),
-            ),
-            Color32::from_rgb(45, 116, 177),
-            "✓",
-        );
-
-        let pill_rect = Rect::from_min_size(
-            Pos2::new(rect.left() + 60.0, chip_y - 12.0),
-            Vec2::new(128.0, 24.0),
-        );
-        painter.rect_filled(pill_rect, 12.0, Color32::from_rgb(232, 240, 232));
-        painter.rect_stroke(
-            pill_rect,
-            12.0,
-            Stroke::new(1.0, Color32::from_rgb(175, 198, 175)),
-            egui::StrokeKind::Inside,
-        );
-        painter.text(
-            Pos2::new(pill_rect.left() + 10.0, pill_rect.center().y - 1.0),
-            egui::Align2::LEFT_CENTER,
-            "↻",
-            FontId::new(13.0, FontFamily::Proportional),
-            OFFICE_GREEN_DARK,
-        );
-        painter.text(
-            Pos2::new(pill_rect.left() + 24.0, pill_rect.center().y - 1.0),
-            egui::Align2::LEFT_CENTER,
-            "Auto Scheduled",
-            FontId::new(13.0, FontFamily::Proportional),
-            Color32::from_rgb(40, 40, 40),
-        );
-        painter.text(
-            Pos2::new(pill_rect.right() - 10.0, pill_rect.center().y - 1.0),
-            egui::Align2::RIGHT_CENTER,
-            "▾",
-            FontId::new(12.0, FontFamily::Proportional),
-            Color32::from_rgb(84, 84, 84),
-        );
-    }
-
-    fn timeline_strip(ui: &mut egui::Ui, _document: &ProjectDocument, chart_range: ChartRange) {
-        let start_label = chart_range.start.format("%Y年%m月%d日").to_string();
-        let end_label = chart_range.end.format("%Y年%m月%d日").to_string();
-        let height = 56.0;
-        let (rect, _) =
-            ui.allocate_exact_size(Vec2::new(ui.available_width(), height), Sense::hover());
-        let painter = ui.painter_at(rect);
-        painter.rect_filled(rect, 0.0, TIMELINE_FILL);
-        painter.rect_stroke(
-            rect,
-            0.0,
-            Stroke::new(1.0, TIMELINE_BORDER),
-            egui::StrokeKind::Inside,
-        );
-
-        let inner = rect.shrink2(Vec2::new(10.0, 6.0));
-        let label_rect = Rect::from_min_size(inner.min, Vec2::new(70.0, 18.0));
-        painter.text(
-            label_rect.left_center(),
-            egui::Align2::LEFT_CENTER,
-            "タイムライン",
-            FontId::new(11.0, FontFamily::Proportional),
-            TIMELINE_BORDER,
-        );
-        painter.line_segment(
-            [
-                Pos2::new(label_rect.right() + 8.0, inner.top() + 9.0),
-                Pos2::new(label_rect.right() + 8.0, inner.bottom() - 4.0),
-            ],
-            Stroke::new(1.0, Color32::from_rgb(201, 214, 198)),
-        );
-
-        painter.text(
-            Pos2::new(inner.left() + 94.0, inner.top() + 3.0),
-            egui::Align2::LEFT_TOP,
-            start_label,
-            FontId::new(10.0, FontFamily::Proportional),
-            Color32::from_rgb(99, 99, 99),
-        );
-        painter.text(
-            Pos2::new(inner.right() - 2.0, inner.top() + 3.0),
-            egui::Align2::RIGHT_TOP,
-            end_label,
-            FontId::new(10.0, FontFamily::Proportional),
-            Color32::from_rgb(99, 99, 99),
-        );
-
-        let message_rect = Rect::from_min_max(
-            Pos2::new(inner.left() + 82.0, inner.top() + 18.0),
-            Pos2::new(inner.right() - 10.0, inner.bottom() - 6.0),
-        );
-        painter.rect_stroke(
-            message_rect,
-            0.0,
-            Stroke::new(1.0, Color32::from_rgb(180, 193, 175)),
-            egui::StrokeKind::Inside,
-        );
-        painter.rect_filled(message_rect, 0.0, Color32::from_rgb(255, 255, 255));
-        painter.text(
-            message_rect.center(),
-            egui::Align2::CENTER_CENTER,
-            "日付が設定されたタスクをタイムラインに追加します",
-            FontId::new(14.0, FontFamily::Proportional),
-            Color32::from_rgb(71, 71, 71),
-        );
+        });
     }
 
     fn render_detail_pane(
@@ -2404,38 +2170,36 @@ impl GanttApp {
                             ui.add_space(4.0);
 
                             Self::detail_card(ui, "関連タスク", |ui| {
-                                let relation_badge = |text: &str, fill: Color32, text_color: Color32| {
-                                    RichText::new(text)
-                                        .color(text_color)
-                                        .background_color(fill)
-                                        .strong()
-                                };
-                                let dependency_line = |ui: &mut egui::Ui,
-                                                       from: &str,
-                                                       relation: &str,
-                                                       to: &str,
-                                                       lag: Option<&String>| {
-                                    ui.horizontal_wrapped(|ui| {
-                                        ui.label(
-                                            RichText::new("•")
-                                                .color(Color32::from_rgb(115, 115, 115)),
-                                        );
-                                        ui.label(RichText::new(from).strong());
-                                        ui.label(RichText::new("→").color(SUBTEXT));
-                                        ui.label(RichText::new(to).strong());
-                                        ui.label(relation_badge(
-                                            relation,
-                                            ACCENT_SOFT,
-                                            ACCENT,
-                                        ));
-                                        if let Some(lag) = lag {
+                                let relation_badge =
+                                    |text: &str, fill: Color32, text_color: Color32| {
+                                        RichText::new(text)
+                                            .color(text_color)
+                                            .background_color(fill)
+                                            .strong()
+                                    };
+                                let dependency_line =
+                                    |ui: &mut egui::Ui,
+                                     from: &str,
+                                     relation: &str,
+                                     to: &str,
+                                     lag: Option<&String>| {
+                                        ui.horizontal_wrapped(|ui| {
                                             ui.label(
-                                                RichText::new(format!("lag {}", lag))
-                                                    .color(SUBTEXT),
+                                                RichText::new("•")
+                                                    .color(Color32::from_rgb(115, 115, 115)),
                                             );
-                                        }
-                                    });
-                                };
+                                            ui.label(RichText::new(from).strong());
+                                            ui.label(RichText::new("→").color(SUBTEXT));
+                                            ui.label(RichText::new(to).strong());
+                                            ui.label(relation_badge(relation, ACCENT_SOFT, ACCENT));
+                                            if let Some(lag) = lag {
+                                                ui.label(
+                                                    RichText::new(format!("lag {}", lag))
+                                                        .color(SUBTEXT),
+                                                );
+                                            }
+                                        });
+                                    };
 
                                 let predecessors = document
                                     .dependencies
@@ -2448,13 +2212,11 @@ impl GanttApp {
                                     .take(8)
                                     .collect::<Vec<_>>();
                                 ui.horizontal(|ui| {
-                                    ui.label(
-                                        relation_badge(
-                                            "先行",
-                                            Color32::from_rgb(232, 241, 252),
-                                            ACCENT,
-                                        ),
-                                    );
+                                    ui.label(relation_badge(
+                                        "先行",
+                                        Color32::from_rgb(232, 241, 252),
+                                        ACCENT,
+                                    ));
                                     ui.label(RichText::new("タスク").strong());
                                 });
                                 if predecessors.is_empty() {
@@ -2486,13 +2248,11 @@ impl GanttApp {
                                     .take(8)
                                     .collect::<Vec<_>>();
                                 ui.horizontal(|ui| {
-                                    ui.label(
-                                        relation_badge(
-                                            "後続",
-                                            Color32::from_rgb(237, 245, 231),
-                                            OFFICE_GREEN_DARK,
-                                        ),
-                                    );
+                                    ui.label(relation_badge(
+                                        "後続",
+                                        Color32::from_rgb(237, 245, 231),
+                                        OFFICE_GREEN_DARK,
+                                    ));
                                     ui.label(RichText::new("タスク").strong());
                                 });
                                 if successors.is_empty() {
@@ -2575,14 +2335,20 @@ impl GanttApp {
             pointer_position,
             zoom_px_per_day,
         );
-        let active_drag_task_uid = chart_interaction.as_ref().and_then(|state| {
-            match state.kind {
+        let active_drag_task_uid = chart_interaction
+            .as_ref()
+            .and_then(|state| match state.kind {
                 ChartInteractionKind::Task { task_uid, .. } => Some(task_uid),
                 ChartInteractionKind::Dependency { .. } => None,
-            }
-        });
+            });
         let range = document.chart_range();
-        let fixed_columns_width = 42.0 + 180.0 + 72.0 + 92.0 + 92.0 + 74.0 + 122.0;
+        let fixed_columns_width = SHEET_ROW_HEADER_WIDTH
+            + SHEET_NAME_WIDTH
+            + SHEET_DURATION_WIDTH
+            + SHEET_DATE_WIDTH
+            + SHEET_DATE_WIDTH
+            + SHEET_PERCENT_WIDTH
+            + SHEET_PREDECESSOR_WIDTH;
         let chart_content_width = (range.days() as f32 * zoom_px_per_day).max(360.0);
         let chart_width =
             chart_content_width.max((ui.available_width() - fixed_columns_width).max(420.0));
@@ -3350,14 +3116,14 @@ impl GanttApp {
                     show_critical_path,
                     active_drag_task_uid == Some(task.uid),
                 );
-                let chart_drag_active =
-                    chart_interaction.is_some() || dependency_picker.is_some();
-                let body_response = ui.interact(
-                    geom.body_rect,
-                    ui.id().with(("gantt_body", task.uid)),
-                    Sense::click_and_drag(),
-                )
-                .on_hover_text("ドラッグでタスクを移動");
+                let chart_drag_active = chart_interaction.is_some() || dependency_picker.is_some();
+                let body_response = ui
+                    .interact(
+                        geom.body_rect,
+                        ui.id().with(("gantt_body", task.uid)),
+                        Sense::click_and_drag(),
+                    )
+                    .on_hover_text("ドラッグでタスクを移動");
                 let body_response = body_response.on_hover_cursor(egui::CursorIcon::Grab);
                 let start_handle_response = geom.start_handle_rect.map(|rect| {
                     ui.interact(
@@ -3377,13 +3143,14 @@ impl GanttApp {
                     .on_hover_text("終了日を変更")
                     .on_hover_cursor(egui::CursorIcon::ResizeHorizontal)
                 });
-                let link_handle_response = ui.interact(
-                    geom.link_handle_rect,
-                    ui.id().with(("gantt_link_handle", task.uid)),
-                    Sense::click_and_drag(),
-                )
-                .on_hover_text("依存関係を作成")
-                .on_hover_cursor(egui::CursorIcon::Crosshair);
+                let link_handle_response = ui
+                    .interact(
+                        geom.link_handle_rect,
+                        ui.id().with(("gantt_link_handle", task.uid)),
+                        Sense::click_and_drag(),
+                    )
+                    .on_hover_text("依存関係を作成")
+                    .on_hover_cursor(egui::CursorIcon::Crosshair);
 
                 if !chart_drag_active {
                     if body_response.double_clicked() || body_response.clicked() {
@@ -3495,6 +3262,32 @@ impl GanttApp {
                     }
                     blank_x += width;
                 }
+
+                if let Some(task_index) = Self::sheet_row_target_index(visible_indices, visible_row)
+                {
+                    let row_rect = Rect::from_min_size(
+                        Pos2::new(table_left, row_top),
+                        Vec2::new(table_width, BODY_ROW_HEIGHT),
+                    );
+                    let filler_response = ui.interact(
+                        row_rect,
+                        ui.id().with(("sheet_filler", visible_row)),
+                        Sense::click_and_drag(),
+                    );
+                    if filler_response.clicked() || filler_response.drag_started() {
+                        Self::update_sheet_selection_from_response(
+                            ui,
+                            &filler_response,
+                            task_index,
+                            *selected_sheet_column,
+                            &mut pending_selection,
+                            selected_sheet_column,
+                            selection_anchor,
+                            dragging,
+                        );
+                        *editing_cell = None;
+                    }
+                }
             }
         }
 
@@ -3529,8 +3322,13 @@ impl GanttApp {
 
             for (geom, &task_index) in rects.iter().zip(visible_indices.iter()) {
                 let task = &document.tasks[task_index];
-                let baseline_rect =
-                    task_baseline_rect(task, range, zoom_px_per_day, geom.center_y, geom.bar_rect.left());
+                let baseline_rect = task_baseline_rect(
+                    task,
+                    range,
+                    zoom_px_per_day,
+                    geom.center_y,
+                    geom.bar_rect.left(),
+                );
                 draw_progress_actual_line(
                     ui.painter(),
                     task,
@@ -3567,25 +3365,25 @@ impl GanttApp {
                 table
                     .header(HEADER_HEIGHT, |mut header| {
                         header.col(|ui| {
-                            paint_header_cell(ui, "", HeaderGlyph::Mode);
+                            paint_sheet_header_cell(ui, "", HeaderGlyph::Mode);
                         });
                         header.col(|ui| {
-                            paint_header_cell(ui, "Task Name", HeaderGlyph::Name);
+                            paint_sheet_header_cell(ui, "Task Name", HeaderGlyph::Name);
                         });
                         header.col(|ui| {
-                            paint_header_cell(ui, "Duration", HeaderGlyph::Duration);
+                            paint_sheet_header_cell(ui, "Duration", HeaderGlyph::Duration);
                         });
                         header.col(|ui| {
-                            paint_header_cell(ui, "Start", HeaderGlyph::Date);
+                            paint_sheet_header_cell(ui, "Start", HeaderGlyph::Date);
                         });
                         header.col(|ui| {
-                            paint_header_cell(ui, "Finish", HeaderGlyph::Date);
+                            paint_sheet_header_cell(ui, "Finish", HeaderGlyph::Date);
                         });
                         header.col(|ui| {
-                            paint_header_cell(ui, "% Complete", HeaderGlyph::Percent);
+                            paint_sheet_header_cell(ui, "% Complete", HeaderGlyph::Percent);
                         });
                         header.col(|ui| {
-                            paint_header_cell(ui, "Predecessors", HeaderGlyph::Predecessors);
+                            paint_sheet_header_cell(ui, "Predecessors", HeaderGlyph::Predecessors);
                         });
                         header.col(|ui| {
                             let rect = ui.max_rect();
@@ -4309,13 +4107,19 @@ impl GanttApp {
             return;
         };
 
-        let delta_days = ((pointer_position.x - pointer_origin_x) / px_per_day.max(1.0)).round()
-            as i64;
+        let delta_days =
+            ((pointer_position.x - pointer_origin_x) / px_per_day.max(1.0)).round() as i64;
         if delta_days == 0 {
             return;
         }
 
-        let _ = apply_task_drag_preview(document, &state.original_document, task_uid, kind, delta_days);
+        let _ = apply_task_drag_preview(
+            document,
+            &state.original_document,
+            task_uid,
+            kind,
+            delta_days,
+        );
     }
 
     fn finish_chart_interaction(
@@ -4376,7 +4180,12 @@ impl GanttApp {
                 let pointer = pointer_position.unwrap_or(pointer_origin);
                 let Some(target_task_uid) = row_geometries
                     .iter()
-                    .find(|geometry| geometry.bar_rect.expand2(Vec2::splat(4.0)).contains(pointer))
+                    .find(|geometry| {
+                        geometry
+                            .bar_rect
+                            .expand2(Vec2::splat(4.0))
+                            .contains(pointer)
+                    })
                     .map(|geometry| geometry.task_uid)
                 else {
                     *status = "依存先タスクの上でドロップしてください。".to_string();
@@ -4388,11 +4197,13 @@ impl GanttApp {
                     return;
                 }
 
-                let Some(source_task_index) = find_task_index_by_uid(&document.tasks, source_task_uid)
+                let Some(source_task_index) =
+                    find_task_index_by_uid(&document.tasks, source_task_uid)
                 else {
                     return;
                 };
-                let Some(target_task_index) = find_task_index_by_uid(&document.tasks, target_task_uid)
+                let Some(target_task_index) =
+                    find_task_index_by_uid(&document.tasks, target_task_uid)
                 else {
                     return;
                 };
@@ -4454,6 +4265,9 @@ impl eframe::App for GanttApp {
         }
 
         self.handle_drop(ctx);
+        ui.set_min_size(ui.available_size());
+        let full_rect = ui.max_rect();
+        ui.painter().rect_filled(full_rect, 0.0, APP_BG);
 
         egui::Frame::default()
             .fill(APP_BG)
@@ -4659,6 +4473,12 @@ impl GanttApp {
             .collect()
     }
 
+    fn normalize_excel_clipboard_text(text: &str) -> String {
+        text.trim_start_matches('\u{feff}')
+            .replace("\r\n", "\n")
+            .replace('\r', "\n")
+    }
+
     fn is_mode_label(text: &str) -> bool {
         matches!(
             text.trim(),
@@ -4711,6 +4531,13 @@ impl GanttApp {
         if !pointer_down {
             *dragging = false;
         }
+    }
+
+    fn sheet_row_target_index(visible_indices: &[usize], visible_row: usize) -> Option<usize> {
+        visible_indices
+            .get(visible_row)
+            .copied()
+            .or_else(|| visible_indices.last().copied())
     }
 }
 
@@ -5089,22 +4916,6 @@ fn paint_sheet_header_cell(painter: &egui::Painter, rect: Rect, title: &str, gly
     }
 }
 
-fn paint_cell(ui: &mut egui::Ui, fill: Option<Color32>, selected: bool, active: bool) {
-    let rect = ui.max_rect();
-    paint_sheet_cell(
-        &ui.painter_at(rect),
-        rect,
-        fill.unwrap_or(SHEET_BG),
-        selected,
-        active,
-    );
-}
-
-fn paint_header_cell(ui: &mut egui::Ui, title: &str, glyph: HeaderGlyph) {
-    let rect = ui.max_rect();
-    paint_sheet_header_cell(&ui.painter_at(rect), rect, title, glyph);
-}
-
 fn draw_header_glyph(painter: &egui::Painter, rect: Rect, glyph: HeaderGlyph) {
     let ink = Color32::from_rgb(97, 97, 97);
     let accent = Color32::from_rgb(0, 84, 147);
@@ -5336,17 +5147,7 @@ fn draw_mode_badge(painter: &egui::Painter, rect: Rect, color: Color32, task: &G
     }
 }
 
-fn draw_mode_chip(painter: &egui::Painter, rect: Rect, color: Color32, text: &str) {
-    painter.rect_filled(rect, 4.0, Color32::from_rgb(251, 252, 253));
-    painter.rect_stroke(rect, 4.0, Stroke::new(1.0, color), egui::StrokeKind::Inside);
-    painter.text(
-        rect.center(),
-        egui::Align2::CENTER_CENTER,
-        text,
-        FontId::new(13.0, FontFamily::Proportional),
-        color,
-    );
-}
+// draw_mode_chip was removed - it was only used by task_mode_strip which was deleted
 
 fn paint_chart_row_background(
     painter: &egui::Painter,
@@ -5365,7 +5166,11 @@ fn paint_chart_row_background(
             Pos2::new((x - 1.0).max(rect.left()), rect.top()),
             Pos2::new((x + 1.0).min(rect.right()), rect.bottom()),
         );
-        painter.rect_filled(today_band, 0.0, Color32::from_rgba_unmultiplied(242, 171, 61, 26));
+        painter.rect_filled(
+            today_band,
+            0.0,
+            Color32::from_rgba_unmultiplied(242, 171, 61, 26),
+        );
         painter.line_segment(
             [Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
             Stroke::new(2.0, TODAY),
@@ -5420,17 +5225,23 @@ fn draw_task_bar(
     let start_day = task.start.map(|dt| dt.date()).unwrap_or(range.start);
     let finish_day = task.finish.map(|dt| dt.date()).unwrap_or(start_day);
 
-    let start_offset = (start_day - range.start).num_days().max(0) as f32;
-    let finish_offset = (finish_day - range.start).num_days().max(0) as f32 + 1.0;
+    let start_offset_f64 = (start_day - range.start).num_days().max(0) as f64;
+    let finish_offset_f64 = (finish_day - range.start).num_days().max(0) as f64 + 1.0;
+    let px_per_day_f64 = px_per_day as f64;
+    let rect_left_f64 = rect.left() as f64;
 
-    let mut start_x = rect.left() + start_offset * px_per_day;
-    let mut end_x = rect.left() + finish_offset * px_per_day;
+    let mut start_x = rect_left_f64 + start_offset_f64 * px_per_day_f64;
+    let mut end_x = rect_left_f64 + finish_offset_f64 * px_per_day_f64;
     if end_x < start_x {
         std::mem::swap(&mut start_x, &mut end_x);
     }
-    if (end_x - start_x).abs() < 1.0 {
-        end_x = start_x + 2.0;
+    let min_width = 1.5;
+    if (end_x - start_x).abs() < min_width {
+        end_x = start_x + min_width;
     }
+
+    let start_x = start_x as f32;
+    let end_x = end_x as f32;
 
     let is_critical = task.critical && show_critical_path;
     let base_color = if task.summary {
@@ -5583,11 +5394,7 @@ fn draw_task_bar(
             ],
             Stroke::new(1.6, grip_color),
         );
-        painter.circle_filled(
-            handle_rect.center(),
-            3.1,
-            grip_color,
-        );
+        painter.circle_filled(handle_rect.center(), 3.1, grip_color);
     }
     if let Some(handle_rect) = finish_handle_rect {
         let grip_color = if selected {
@@ -5607,11 +5414,7 @@ fn draw_task_bar(
             ],
             Stroke::new(1.6, grip_color),
         );
-        painter.circle_filled(
-            handle_rect.center(),
-            3.1,
-            grip_color,
-        );
+        painter.circle_filled(handle_rect.center(), 3.1, grip_color);
     }
     painter.line_segment(
         [
@@ -5665,20 +5468,27 @@ fn task_baseline_rect(
 
     let baseline_start_day = baseline_start.date();
     let baseline_finish_day = baseline_finish.date();
-    let baseline_start_offset = (baseline_start_day - range.start).num_days().max(0) as f32;
-    let baseline_finish_offset = (baseline_finish_day - range.start).num_days().max(0) as f32 + 1.0;
+    let baseline_start_offset_f64 = (baseline_start_day - range.start).num_days().max(0) as f64;
+    let baseline_finish_offset_f64 =
+        (baseline_finish_day - range.start).num_days().max(0) as f64 + 1.0;
+    let px_per_day_f64 = px_per_day as f64;
+    let left_f64 = left as f64;
+    let row_center_y_f64 = row_center_y as f64;
     Some(Rect::from_min_max(
-        Pos2::new(left + baseline_start_offset * px_per_day, row_center_y - 7.0),
-        Pos2::new(left + baseline_finish_offset * px_per_day, row_center_y - 5.0),
+        Pos2::new(
+            (left_f64 + baseline_start_offset_f64 * px_per_day_f64) as f32,
+            (row_center_y_f64 - 7.0) as f32,
+        ),
+        Pos2::new(
+            (left_f64 + baseline_finish_offset_f64 * px_per_day_f64) as f32,
+            (row_center_y_f64 - 5.0) as f32,
+        ),
     ))
 }
 
 fn progress_point_on_rect(rect: Rect, percent_complete: f32) -> Pos2 {
     let progress = (percent_complete / 100.0).clamp(0.0, 1.0);
-    Pos2::new(
-        rect.left() + rect.width() * progress,
-        rect.center().y,
-    )
+    Pos2::new(rect.left() + rect.width() * progress, rect.center().y)
 }
 
 fn draw_inazuma_polyline(painter: &egui::Painter, start: Pos2, end: Pos2, stroke: Stroke) {
@@ -5707,23 +5517,44 @@ fn progress_inazuma_endpoints(
     Some((anchor, progress_point))
 }
 
-fn inazuma_polyline_points(start: Pos2, end: Pos2) -> [Pos2; 6] {
+fn inazuma_polyline_points(start: Pos2, end: Pos2) -> [Pos2; 8] {
     let dx = end.x - start.x;
     let dy = end.y - start.y;
-    let horizontal = (dx.abs() * 0.30).clamp(8.0, 28.0);
-    let vertical = (dy.abs() * 0.28 + 4.0).clamp(4.0, 12.0);
-    let direction = if dx >= 0.0 { 1.0 } else { -1.0 };
-    let y1 = start.y + dy * 0.18 - vertical;
-    let y2 = start.y + dy * 0.38 + vertical * 0.55;
-    let y3 = start.y + dy * 0.62 - vertical * 0.75;
-    let y4 = start.y + dy * 0.82 + vertical * 0.35;
+    let distance = (dx * dx + dy * dy).sqrt();
+
+    if distance < 1.0 {
+        return [start, end, end, end, end, end, end, end];
+    }
+
+    let amplitude = if distance < 20.0 {
+        4.0
+    } else if distance < 60.0 {
+        8.0
+    } else if distance < 150.0 {
+        12.0
+    } else {
+        16.0
+    };
+
+    let dynamic_amplitude = amplitude * (distance / 100.0).clamp(0.3, 1.5);
+
+    let zigzag_sign = if dx >= 0.0 { 1.0 } else { -1.0 };
+
+    let y1 = start.y + dy * 0.15 - dynamic_amplitude * zigzag_sign;
+    let y2 = start.y + dy * 0.30 + dynamic_amplitude * zigzag_sign * 0.5;
+    let y3 = start.y + dy * 0.45 - dynamic_amplitude * zigzag_sign * 0.7;
+    let y4 = start.y + dy * 0.60 + dynamic_amplitude * zigzag_sign * 0.3;
+    let y5 = start.y + dy * 0.75 - dynamic_amplitude * zigzag_sign * 0.5;
+    let y6 = start.y + dy * 0.90 + dynamic_amplitude * zigzag_sign * 0.2;
 
     [
         start,
-        Pos2::new(start.x + horizontal * 0.45 * direction, y1),
-        Pos2::new(start.x + dx * 0.34, y2),
-        Pos2::new(start.x + dx * 0.58, y3),
-        Pos2::new(end.x - horizontal * 0.45 * direction, y4),
+        Pos2::new(start.x + dx * 0.12, y1),
+        Pos2::new(start.x + dx * 0.25, y2),
+        Pos2::new(start.x + dx * 0.40, y3),
+        Pos2::new(start.x + dx * 0.55, y4),
+        Pos2::new(start.x + dx * 0.70, y5),
+        Pos2::new(start.x + dx * 0.85, y6),
         end,
     ]
 }
@@ -5949,7 +5780,10 @@ fn draw_dependencies(
             },
         );
         for segment in path.windows(2) {
-            painter.line_segment([segment[0], segment[1]], Stroke::new(stroke.width + 2.0, shadow_color));
+            painter.line_segment(
+                [segment[0], segment[1]],
+                Stroke::new(stroke.width + 2.0, shadow_color),
+            );
         }
         for segment in path.windows(2) {
             painter.line_segment([segment[0], segment[1]], stroke);
@@ -6057,78 +5891,6 @@ fn apply_task_date_change(
     changed
 }
 
-fn dependency_exists(document: &ProjectDocument, predecessor_uid: u32, successor_uid: u32) -> bool {
-    document
-        .dependencies
-        .iter()
-        .any(|dependency| dependency.predecessor_uid == predecessor_uid && dependency.successor_uid == successor_uid)
-}
-
-fn add_dependency_from_drag(
-    document: &mut ProjectDocument,
-    predecessor_uid: u32,
-    successor_uid: u32,
-    relation: DependencyRelationChoice,
-    lag_text: Option<String>,
-) -> bool {
-    if predecessor_uid == successor_uid || dependency_exists(document, predecessor_uid, successor_uid) {
-        return false;
-    }
-
-    document.dependencies.push(GanttDependency {
-        predecessor_uid,
-        successor_uid,
-        relation: relation.label().to_string(),
-        lag_text,
-    });
-    refresh_predecessor_text_for_task(document, successor_uid);
-    true
-}
-
-fn refresh_predecessor_text_for_task(document: &mut ProjectDocument, successor_uid: u32) {
-    let Some(task_index) = find_task_index_by_uid(&document.tasks, successor_uid) else {
-        return;
-    };
-
-    let mut assignments = document
-        .dependencies
-        .iter()
-        .filter(|dependency| dependency.successor_uid == successor_uid)
-        .map(|dependency| {
-            let predecessor_id = find_task_by_uid(&document.tasks, dependency.predecessor_uid)
-                .map(|task| task.id)
-                .unwrap_or(dependency.predecessor_uid);
-            let relation = if dependency.relation.trim().is_empty() {
-                "FS"
-            } else {
-                dependency.relation.trim()
-            };
-            let lag = dependency
-                .lag_text
-                .as_deref()
-                .unwrap_or("")
-                .trim()
-                .to_string();
-            (predecessor_id, relation.to_string(), lag)
-        })
-        .collect::<Vec<_>>();
-    assignments.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
-
-    let predecessor_text = assignments
-        .into_iter()
-        .map(|(predecessor_id, relation, lag)| {
-            if lag.is_empty() {
-                format!("{predecessor_id}{relation}")
-            } else {
-                format!("{predecessor_id}{relation} {lag}")
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(", ");
-
-    document.tasks[task_index].predecessor_text = predecessor_text;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -6188,7 +5950,6 @@ mod tests {
             task_editor: TaskEditorState::default(),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
-            active_ribbon_tab: RibbonTab::File,
         }
     }
 
@@ -6310,6 +6071,53 @@ mod tests {
         assert_eq!(document.tasks[2].name, "Renamed B");
         assert_eq!(document.tasks[2].duration_text, "2日");
         assert_eq!(document.tasks[2].percent_complete, 75.0);
+    }
+
+    #[test]
+    fn paste_handles_excel_bom_and_crlf_text() {
+        let document = ProjectDocument {
+            name: "Demo".to_string(),
+            title: None,
+            manager: None,
+            start_date: None,
+            finish_date: None,
+            calendars: vec![],
+            tasks: vec![
+                sample_task(100, 1, "Original A"),
+                sample_task(101, 2, "Original B"),
+            ],
+            dependencies: vec![],
+        };
+        let mut app = sample_app(document, 0, SheetColumn::Name);
+        let visible_indices = vec![0, 1];
+        let pasted = "\u{feff}Auto Scheduled\tRenamed A\t5d\t2026-05-01\t2026-05-04\t50\t1FS\r\nManually Scheduled\tRenamed B\t2d\t2026-05-05\t2026-05-06\t75\t";
+
+        app.apply_excel_paste(pasted.to_string(), &visible_indices);
+
+        let document = app.document.as_ref().expect("document should remain");
+        assert_eq!(document.tasks[0].name, "Renamed A");
+        assert_eq!(document.tasks[0].duration_text, "5日");
+        assert_eq!(document.tasks[0].start_text, "2026-05-01");
+        assert_eq!(document.tasks[0].finish_text, "2026-05-04");
+        assert_eq!(document.tasks[0].percent_complete, 50.0);
+        assert_eq!(document.tasks[0].predecessor_text, "1FS");
+        assert_eq!(document.tasks[1].name, "Renamed B");
+        assert_eq!(document.tasks[1].duration_text, "2日");
+        assert_eq!(document.tasks[1].percent_complete, 75.0);
+    }
+
+    #[test]
+    fn filler_row_selection_targets_last_visible_task() {
+        let visible_indices = vec![4, 6, 9];
+
+        assert_eq!(
+            GanttApp::sheet_row_target_index(&visible_indices, 3),
+            Some(9)
+        );
+        assert_eq!(
+            GanttApp::sheet_row_target_index(&visible_indices, 20),
+            Some(9)
+        );
     }
 
     #[test]

@@ -18,3 +18,5 @@ Thumbs.db
 .tauri/
 projectlibre-tauri/.tauri/
 
+# Local-only legacy reference material
+upstream/projectlibre-snapshot/

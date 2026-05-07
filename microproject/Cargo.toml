@@ -9,8 +9,8 @@ chrono = "0.4"
 dirs = "6"
 eframe = "0.34.1"
 egui_extras = "0.34.1"
+petgraph = "0.8"
 quick-xml = { version = "0.39.2", features = ["serialize", "encoding"] }
-roxmltree = "0.20"
 rfd = "0.17.2"
 serde = { version = "1.0", features = ["derive"] }
 
