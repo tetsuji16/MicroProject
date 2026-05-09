@@ -1,6 +1,8 @@
 mod app;
 mod dependency;
 mod mspdi;
+mod table_view;
+mod timeline_view;
 
 use std::path::PathBuf;
 

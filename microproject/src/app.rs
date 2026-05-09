@@ -2,25 +2,26 @@ use crate::dependency::{
     add_dependency_from_drag, dependency_exists, refresh_predecessor_text_for_task,
 };
 use crate::mspdi::{parse_date_time, ChartRange, GanttDependency, GanttTask, ProjectDocument};
-use chrono::{Datelike, Duration};
+use chrono::{Datelike, Duration, NaiveDate};
 use eframe::egui::{
     self, Align, Color32, Event, FontData, FontDefinitions, FontFamily, FontId, Pos2, Rect,
     RichText, Sense, Stroke, Vec2,
 };
-// egui_extras imports will be used when TableBuilder version is enabled
+use egui_extras::{Column, TableBuilder};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+
+use crate::table_view::{
+    sheet_fixed_columns_width, SHEET_DATE_WIDTH, SHEET_DURATION_WIDTH, SHEET_NAME_WIDTH,
+    SHEET_PERCENT_WIDTH, SHEET_PREDECESSOR_WIDTH, SHEET_ROW_HEADER_WIDTH,
+};
+use crate::timeline_view::{chart_width as compute_chart_width, table_width as sum_widths};
 
 const BODY_ROW_HEIGHT: f32 = 24.0;
 const HEADER_HEIGHT: f32 = 44.0;
-const SHEET_ROW_HEADER_WIDTH: f32 = 44.0;
-const SHEET_NAME_WIDTH: f32 = 220.0;
-const SHEET_DURATION_WIDTH: f32 = 80.0;
-const SHEET_DATE_WIDTH: f32 = 100.0;
-const SHEET_PERCENT_WIDTH: f32 = 80.0;
-const SHEET_PREDECESSOR_WIDTH: f32 = 130.0;
 const SHEET_CELL_PADDING_X: f32 = 8.0;
 const SHEET_CELL_PADDING_Y: f32 = 4.0;
 const APP_BG: Color32 = Color32::from_rgb(212, 208, 200);
@@ -54,6 +55,8 @@ const BASELINE: Color32 = Color32::from_rgb(148, 148, 148);
 const WEEKEND_BG: Color32 = Color32::from_rgb(248, 248, 248);
 const TODAY: Color32 = Color32::from_rgb(242, 171, 61);
 const UNDO_STACK_LIMIT: usize = 64;
+const APP_SETTINGS_DIR: &str = "microproject";
+const APP_SETTINGS_FILE: &str = "settings.txt";
 const TASK_BAR_HANDLE_WIDTH: f32 = 7.0;
 const TASK_BAR_HANDLE_HEIGHT: f32 = 13.0;
 const TASK_BAR_LINK_HANDLE_GAP: f32 = 7.0;
@@ -258,6 +261,10 @@ pub struct GanttApp {
     status: String,
     error: Option<String>,
     zoom_px_per_day: f32,
+    status_date: NaiveDate,
+    status_date_text: String,
+    status_date_picker_open: bool,
+    status_date_picker_month: NaiveDate,
     filter_text: String,
     show_weekends: bool,
     show_critical_path: bool,
@@ -305,8 +312,49 @@ struct UndoState {
 }
 
 impl GanttApp {
+    fn default_status_date() -> NaiveDate {
+        chrono::Local::now().date_naive()
+    }
+
+    fn settings_path() -> Option<PathBuf> {
+        dirs::config_dir().map(|dir| dir.join(APP_SETTINGS_DIR).join(APP_SETTINGS_FILE))
+    }
+
+    fn load_app_settings() -> Option<AppSettings> {
+        let path = Self::settings_path()?;
+        let text = fs::read_to_string(path).ok()?;
+        parse_app_settings_text(&text)
+    }
+
+    fn save_app_settings(&self) {
+        let Some(path) = Self::settings_path() else {
+            return;
+        };
+        if let Some(parent) = path.parent() {
+            if fs::create_dir_all(parent).is_err() {
+                return;
+            }
+        }
+
+        let mut file = match fs::File::create(path) {
+            Ok(file) => file,
+            Err(_) => return,
+        };
+        let _ = writeln!(
+            file,
+            "status_date={}",
+            self.status_date.format("%Y-%m-%d")
+        );
+    }
+
     pub fn new(cc: &eframe::CreationContext<'_>, initial_file: Option<PathBuf>) -> Self {
         configure_fonts(&cc.egui_ctx);
+
+        let loaded_settings = Self::load_app_settings();
+        let status_date = loaded_settings
+            .as_ref()
+            .map(|settings| settings.status_date)
+            .unwrap_or_else(Self::default_status_date);
 
         let mut visuals = egui::Visuals::light();
         visuals.override_text_color = Some(TEXT);
@@ -334,6 +382,10 @@ impl GanttApp {
             status: "MS Project XML ファイルを開いてください。".to_string(),
             error: None,
             zoom_px_per_day: 18.0,
+            status_date,
+            status_date_text: status_date.format("%Y-%m-%d").to_string(),
+            status_date_picker_open: false,
+            status_date_picker_month: first_day_of_month(status_date),
             filter_text: String::new(),
             show_weekends: true,
             show_critical_path: true,
@@ -578,6 +630,126 @@ impl GanttApp {
         };
 
         self.task_editor.sync_from_task(task);
+    }
+
+    fn set_status_date(&mut self, date: NaiveDate) {
+        self.status_date = date;
+        self.status_date_text = date.format("%Y-%m-%d").to_string();
+        self.status_date_picker_month = first_day_of_month(date);
+        self.save_app_settings();
+    }
+
+    fn show_status_date_picker(&mut self, ctx: &egui::Context) {
+        if !self.status_date_picker_open {
+            return;
+        }
+
+        let mut open = self.status_date_picker_open;
+        let mut month = self.status_date_picker_month;
+        let mut selected_date = None;
+        let mut close_requested = false;
+
+        egui::Window::new("基準日")
+            .collapsible(false)
+            .resizable(false)
+            .default_pos(Pos2::new(860.0, 86.0))
+            .open(&mut open)
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    if ui.small_button("◀").clicked() {
+                        month = prev_month_start(month);
+                    }
+                    ui.label(RichText::new(status_date_picker_label(month)).strong());
+                    if ui.small_button("▶").clicked() {
+                        month = next_month_start(month);
+                    }
+                });
+
+                ui.add_space(4.0);
+                egui::Grid::new("status_date_picker_weekdays")
+                    .spacing(Vec2::new(4.0, 4.0))
+                    .show(ui, |ui| {
+                        for (index, label) in ["月", "火", "水", "木", "金", "土", "日"]
+                            .into_iter()
+                            .enumerate()
+                        {
+                            let color = if index == 5 {
+                                Color32::from_rgb(52, 94, 176)
+                            } else if index == 6 {
+                                Color32::from_rgb(192, 64, 48)
+                            } else {
+                                SUBTEXT
+                            };
+                            ui.label(RichText::new(label).size(10.0).color(color));
+                        }
+                        ui.end_row();
+                    });
+
+                let first_weekday = month.weekday().num_days_from_monday() as usize;
+                let month_days = days_in_month(month.year(), month.month());
+                let today = chrono::Local::now().date_naive();
+
+                egui::Grid::new("status_date_picker_days")
+                    .spacing(Vec2::new(4.0, 4.0))
+                    .show(ui, |ui| {
+                        for _ in 0..first_weekday {
+                            ui.label(" ");
+                        }
+
+                        for day in 1..=month_days {
+                            let date = NaiveDate::from_ymd_opt(month.year(), month.month(), day)
+                                .unwrap_or(month);
+                            let is_selected = date == self.status_date;
+                            let is_today = date == today;
+                            let weekday = date.weekday().num_days_from_monday();
+                            let weekend_color = if weekday == 5 {
+                                Color32::from_rgb(52, 94, 176)
+                            } else if weekday == 6 {
+                                Color32::from_rgb(192, 64, 48)
+                            } else {
+                                TEXT
+                            };
+                            let text = if is_selected {
+                                RichText::new(day.to_string()).strong().color(Color32::WHITE)
+                            } else if is_today {
+                                RichText::new(day.to_string()).strong().color(TODAY)
+                            } else {
+                                RichText::new(day.to_string()).color(weekend_color)
+                            };
+                            let mut button = egui::Button::new(text).min_size(Vec2::new(30.0, 24.0));
+                            if is_selected {
+                                button = button.fill(ACCENT);
+                            } else if is_today {
+                                button = button.fill(Color32::from_rgb(255, 242, 218));
+                            } else if weekday == 5 || weekday == 6 {
+                                button = button.fill(Color32::from_rgb(250, 250, 252));
+                            }
+                            if ui.add(button).clicked() {
+                                selected_date = Some(date);
+                            }
+                            if (first_weekday + day as usize) % 7 == 0 {
+                                ui.end_row();
+                            }
+                        }
+                    });
+
+                ui.add_space(6.0);
+                ui.horizontal(|ui| {
+                    if ui.button("今日").clicked() {
+                        selected_date = Some(chrono::Local::now().date_naive());
+                    }
+                    if ui.button("閉じる").clicked() {
+                        close_requested = true;
+                    }
+                });
+            });
+
+        self.status_date_picker_open = open && !close_requested;
+        self.status_date_picker_month = month;
+        if let Some(date) = selected_date {
+            self.set_status_date(date);
+            self.status_date_picker_open = false;
+        }
     }
 
     fn set_sheet_selection(
@@ -1374,6 +1546,13 @@ impl GanttApp {
                     }
 
                     ui.with_layout(egui::Layout::right_to_left(Align::Center), |ui| {
+                        let label = self.status_date.format("%Y-%m-%d").to_string();
+                        if ui.button(format!("📅 {}", label)).clicked() {
+                            self.status_date_picker_open = true;
+                            self.status_date_picker_month = first_day_of_month(self.status_date);
+                        }
+                        ui.label(RichText::new("基準日").size(10.0).color(SUBTEXT));
+                        ui.add_space(8.0);
                         ui.add_sized(
                             [162.0, 20.0],
                             egui::TextEdit::singleline(&mut self.filter_text)
@@ -1384,6 +1563,7 @@ impl GanttApp {
                     });
                 });
             });
+        self.show_status_date_picker(ui.ctx());
     }
 
     fn classic_toolbar_button(ui: &mut egui::Ui, icon: RibbonIcon, label: &str) -> egui::Response {
@@ -1874,6 +2054,7 @@ impl GanttApp {
             &mut self.sheet_editing_cell,
             &mut sheet_selection_dragging,
             zoom,
+            self.status_date,
             show_weekends,
             show_critical_path,
             &mut dirty,
@@ -2318,6 +2499,7 @@ impl GanttApp {
         editing_cell: &mut Option<SheetCellSelection>,
         dragging: &mut bool,
         zoom_px_per_day: f32,
+        status_date: NaiveDate,
         show_weekends: bool,
         show_critical_path: bool,
         dirty: &mut bool,
@@ -2342,28 +2524,21 @@ impl GanttApp {
                 ChartInteractionKind::Dependency { .. } => None,
             });
         let range = document.chart_range();
-        let fixed_columns_width = SHEET_ROW_HEADER_WIDTH
-            + SHEET_NAME_WIDTH
-            + SHEET_DURATION_WIDTH
-            + SHEET_DATE_WIDTH
-            + SHEET_DATE_WIDTH
-            + SHEET_PERCENT_WIDTH
-            + SHEET_PREDECESSOR_WIDTH;
-        let chart_content_width = (range.days() as f32 * zoom_px_per_day).max(360.0);
+        let fixed_columns_width = sheet_fixed_columns_width();
         let chart_width =
-            chart_content_width.max((ui.available_width() - fixed_columns_width).max(420.0));
+            compute_chart_width(range, zoom_px_per_day, ui.available_width(), fixed_columns_width);
         let filler_rows = ((ui.available_height() / BODY_ROW_HEIGHT).ceil() as usize).max(12);
         let total_rows = visible_indices.len().max(filler_rows);
-        let visible_tasks: Vec<&GanttTask> = visible_indices
+        let visible_task_uids: Vec<u32> = visible_indices
             .iter()
-            .map(|&index| &document.tasks[index])
+            .map(|&index| document.tasks[index].uid)
             .collect();
-        let task_by_uid = visible_tasks
+        let task_by_uid = visible_task_uids
             .iter()
             .enumerate()
-            .map(|(row_index, task)| (task.uid, row_index))
+            .map(|(row_index, &uid)| (uid, row_index))
             .collect::<HashMap<_, _>>();
-        let geometry = RefCell::new(Vec::with_capacity(visible_tasks.len()));
+        let geometry = RefCell::new(Vec::with_capacity(visible_task_uids.len()));
         let selected_uid =
             selected_task.and_then(|index| document.tasks.get(index).map(|task| task.uid));
         let editing_cell_value = *editing_cell;
@@ -2374,6 +2549,10 @@ impl GanttApp {
             *selection_anchor,
         );
 
+        debug_assert_eq!(
+            crate::table_view::build_egui_table_columns(chart_width).len(),
+            8
+        );
         let widths = [
             SHEET_ROW_HEADER_WIDTH,
             SHEET_NAME_WIDTH,
@@ -2384,12 +2563,13 @@ impl GanttApp {
             SHEET_PREDECESSOR_WIDTH,
             chart_width,
         ];
-        let table_width: f32 = widths.iter().copied().sum();
+        let table_width = sum_widths(&widths);
         let table_height = HEADER_HEIGHT + total_rows as f32 * BODY_ROW_HEIGHT;
         let (table_rect, _) =
             ui.allocate_exact_size(Vec2::new(table_width, table_height), Sense::hover());
         let painter = ui.painter_at(table_rect);
         let table_left = table_rect.left();
+        let chart_left = table_left + fixed_columns_width;
         let header_top = table_rect.top();
         let body_top = header_top + HEADER_HEIGHT;
 
@@ -3291,7 +3471,7 @@ impl GanttApp {
             }
         }
 
-        let rects = geometry.into_inner();
+        let rects = geometry.borrow().clone();
         let pointer_released = ui.input(|input| !input.pointer.primary_down());
         if pointer_released && chart_interaction.is_some() {
             Self::finish_chart_interaction(
@@ -3320,31 +3500,36 @@ impl GanttApp {
                 active_drag_task_uid,
             );
 
-            for (geom, &task_index) in rects.iter().zip(visible_indices.iter()) {
-                let task = &document.tasks[task_index];
-                let baseline_rect = task_baseline_rect(
-                    task,
-                    range,
-                    zoom_px_per_day,
-                    geom.center_y,
-                    geom.bar_rect.left(),
-                );
-                draw_progress_actual_line(
-                    ui.painter(),
-                    task,
-                    geom.bar_rect,
-                    baseline_rect,
-                    selected_uid == Some(task.uid),
-                    show_critical_path,
-                );
-            }
+            let status_x = status_date_x(
+                status_date,
+                range,
+                chart_left,
+                zoom_px_per_day,
+            );
+            let line_points = collect_inazuma_progress_points(
+                &rects,
+                visible_indices,
+                &document.tasks,
+                range,
+                chart_left,
+                gantt_rect.right(),
+                zoom_px_per_day,
+                status_date,
+            );
+            let stroke_color = Color32::from_rgb(226, 0, 0);
+            draw_progress_actual_line(
+                ui.painter(),
+                &line_points,
+                status_x,
+                Rect::from_min_max(
+                    Pos2::new(gantt_rect.left(), body_top),
+                    Pos2::new(gantt_rect.right(), table_rect.bottom()),
+                ),
+                Stroke::new(2.0, stroke_color),
+            );
         }
 
-        if pending_selection != selected_task {
-            *dirty = true;
-        }
-
-        #[cfg(any())]
+        if false {
         egui::ScrollArea::both()
             .auto_shrink([false, false])
             .drag_to_scroll(false)
@@ -3365,25 +3550,25 @@ impl GanttApp {
                 table
                     .header(HEADER_HEIGHT, |mut header| {
                         header.col(|ui| {
-                            paint_sheet_header_cell(ui, "", HeaderGlyph::Mode);
+                            paint_sheet_header_cell(ui.painter(), ui.max_rect(), "", HeaderGlyph::Mode);
                         });
                         header.col(|ui| {
-                            paint_sheet_header_cell(ui, "Task Name", HeaderGlyph::Name);
+                            paint_sheet_header_cell(ui.painter(), ui.max_rect(), "Task Name", HeaderGlyph::Name);
                         });
                         header.col(|ui| {
-                            paint_sheet_header_cell(ui, "Duration", HeaderGlyph::Duration);
+                            paint_sheet_header_cell(ui.painter(), ui.max_rect(), "Duration", HeaderGlyph::Duration);
                         });
                         header.col(|ui| {
-                            paint_sheet_header_cell(ui, "Start", HeaderGlyph::Date);
+                            paint_sheet_header_cell(ui.painter(), ui.max_rect(), "Start", HeaderGlyph::Date);
                         });
                         header.col(|ui| {
-                            paint_sheet_header_cell(ui, "Finish", HeaderGlyph::Date);
+                            paint_sheet_header_cell(ui.painter(), ui.max_rect(), "Finish", HeaderGlyph::Date);
                         });
                         header.col(|ui| {
-                            paint_sheet_header_cell(ui, "% Complete", HeaderGlyph::Percent);
+                            paint_sheet_header_cell(ui.painter(), ui.max_rect(), "% Complete", HeaderGlyph::Percent);
                         });
                         header.col(|ui| {
-                            paint_sheet_header_cell(ui, "Predecessors", HeaderGlyph::Predecessors);
+                            paint_sheet_header_cell(ui.painter(), ui.max_rect(), "Predecessors", HeaderGlyph::Predecessors);
                         });
                         header.col(|ui| {
                             let rect = ui.max_rect();
@@ -3515,8 +3700,8 @@ impl GanttApp {
                                             );
                                             *editing_cell = None;
                                         }
-                                    });
-                                });
+                });
+            });
 
                                 row.col(|ui| {
                                     let cell_selected = selection_bounds.is_some_and(|bounds| {
@@ -4014,6 +4199,7 @@ impl GanttApp {
                                         zoom_px_per_day,
                                         pending_selection == Some(index),
                                         show_critical_path,
+                                        active_drag_task_uid == Some(task.uid),
                                     );
                                     geometry.borrow_mut().push(geom);
                                 });
@@ -4021,9 +4207,7 @@ impl GanttApp {
                         });
                     });
 
-                #[cfg(any())]
                 let rects = geometry.into_inner();
-                #[cfg(any())]
                 if !rects.is_empty() {
                     draw_dependencies(
                         ui.painter(),
@@ -4031,9 +4215,11 @@ impl GanttApp {
                         &task_by_uid,
                         &document.dependencies,
                         selected_uid,
+                        active_drag_task_uid,
                     );
                 }
             });
+        }
 
         if pending_selection != selected_task {
             *dirty = true;
@@ -5486,120 +5672,165 @@ fn task_baseline_rect(
     ))
 }
 
-fn progress_point_on_rect(rect: Rect, percent_complete: f32) -> Pos2 {
-    let progress = (percent_complete / 100.0).clamp(0.0, 1.0);
-    Pos2::new(rect.left() + rect.width() * progress, rect.center().y)
+fn date_x(date: NaiveDate, range: ChartRange, chart_left: f32, px_per_day: f32) -> f32 {
+    let offset_days = (date - range.start).num_days() as f32;
+    chart_left + offset_days * px_per_day
 }
 
-fn draw_inazuma_polyline(painter: &egui::Painter, start: Pos2, end: Pos2, stroke: Stroke) {
-    let path = inazuma_polyline_points(start, end);
-
-    for segment in path.windows(2) {
-        painter.line_segment([segment[0], segment[1]], stroke);
-    }
+fn status_date_x(status_date: NaiveDate, range: ChartRange, chart_left: f32, px_per_day: f32) -> f32 {
+    date_x(status_date, range, chart_left, px_per_day)
 }
 
-fn progress_inazuma_endpoints(
-    task: &GanttTask,
-    bar_rect: Rect,
-    baseline_rect: Option<Rect>,
-) -> Option<(Pos2, Pos2)> {
-    if task.start.is_none() || task.finish.is_none() {
-        return None;
-    }
-
-    let progress = task.percent_complete.clamp(0.0, 100.0);
-    let progress_point = progress_point_on_rect(bar_rect, progress);
-    let anchor = baseline_rect
-        .map(|baseline| progress_point_on_rect(baseline, progress))
-        .unwrap_or_else(|| Pos2::new(bar_rect.left(), bar_rect.center().y - 7.0));
-
-    Some((anchor, progress_point))
+fn first_day_of_month(date: NaiveDate) -> NaiveDate {
+    NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date)
 }
 
-fn inazuma_polyline_points(start: Pos2, end: Pos2) -> [Pos2; 8] {
-    let dx = end.x - start.x;
-    let dy = end.y - start.y;
-    let distance = (dx * dx + dy * dy).sqrt();
-
-    if distance < 1.0 {
-        return [start, end, end, end, end, end, end, end];
-    }
-
-    let amplitude = if distance < 20.0 {
-        4.0
-    } else if distance < 60.0 {
-        8.0
-    } else if distance < 150.0 {
-        12.0
+fn next_month_start(date: NaiveDate) -> NaiveDate {
+    let year = if date.month() == 12 {
+        date.year() + 1
     } else {
-        16.0
+        date.year()
+    };
+    let month = if date.month() == 12 { 1 } else { date.month() + 1 };
+    NaiveDate::from_ymd_opt(year, month, 1).unwrap_or(date)
+}
+
+fn prev_month_start(date: NaiveDate) -> NaiveDate {
+    let year = if date.month() == 1 {
+        date.year() - 1
+    } else {
+        date.year()
+    };
+    let month = if date.month() == 1 { 12 } else { date.month() - 1 };
+    NaiveDate::from_ymd_opt(year, month, 1).unwrap_or(date)
+}
+
+fn days_in_month(year: i32, month: u32) -> u32 {
+    let first = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
+    let next = if month == 12 {
+        NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
+    } else {
+        NaiveDate::from_ymd_opt(year, month + 1, 1).unwrap()
+    };
+    (next - first).num_days() as u32
+}
+
+#[derive(Debug, Clone)]
+struct AppSettings {
+    status_date: NaiveDate,
+}
+
+fn parse_app_settings_text(text: &str) -> Option<AppSettings> {
+    for line in text.lines() {
+        let line = line.trim();
+        if let Some(value) = line.strip_prefix("status_date=") {
+            if let Ok(status_date) = NaiveDate::parse_from_str(value.trim(), "%Y-%m-%d") {
+                return Some(AppSettings { status_date });
+            }
+        }
+    }
+
+    None
+}
+
+fn status_date_picker_label(date: NaiveDate) -> String {
+    format!("{}年{:02}月", date.year(), date.month())
+}
+
+fn task_duration_days(task: &GanttTask) -> Option<f32> {
+    let start = task.start?;
+    if let Some(days) = parse_duration_days(task.duration_text.as_str()) {
+        return Some(days as f32);
+    }
+
+    let finish = task.finish?;
+    let days = (finish.date() - start.date()).num_days().max(0) as f32;
+    Some(days)
+}
+
+fn task_progress_x(
+    task: &GanttTask,
+    geom: &TaskBarGeometry,
+    range: ChartRange,
+    chart_left: f32,
+    chart_right: f32,
+    px_per_day: f32,
+    full_complete_date: NaiveDate,
+) -> Option<f32> {
+    let progress_x = if task.percent_complete >= 100.0 {
+        date_x(full_complete_date, range, chart_left, px_per_day)
+    } else {
+        let duration_days = task_duration_days(task)?;
+        let progress = (task.percent_complete / 100.0).clamp(0.0, 1.0);
+        geom.start_x + duration_days * progress * px_per_day
     };
 
-    let dynamic_amplitude = amplitude * (distance / 100.0).clamp(0.3, 1.5);
+    Some(progress_x.clamp(chart_left, chart_right))
+}
 
-    let zigzag_sign = if dx >= 0.0 { 1.0 } else { -1.0 };
+fn collect_inazuma_progress_points(
+    row_geometries: &[TaskBarGeometry],
+    visible_indices: &[usize],
+    tasks: &[GanttTask],
+    range: ChartRange,
+    chart_left: f32,
+    chart_right: f32,
+    px_per_day: f32,
+    full_complete_date: NaiveDate,
+) -> Vec<Pos2> {
+    let mut line_points = Vec::with_capacity(row_geometries.len());
 
-    let y1 = start.y + dy * 0.15 - dynamic_amplitude * zigzag_sign;
-    let y2 = start.y + dy * 0.30 + dynamic_amplitude * zigzag_sign * 0.5;
-    let y3 = start.y + dy * 0.45 - dynamic_amplitude * zigzag_sign * 0.7;
-    let y4 = start.y + dy * 0.60 + dynamic_amplitude * zigzag_sign * 0.3;
-    let y5 = start.y + dy * 0.75 - dynamic_amplitude * zigzag_sign * 0.5;
-    let y6 = start.y + dy * 0.90 + dynamic_amplitude * zigzag_sign * 0.2;
+    for (geom, &task_index) in row_geometries.iter().zip(visible_indices.iter()) {
+        let Some(task) = tasks.get(task_index) else {
+            continue;
+        };
 
-    [
-        start,
-        Pos2::new(start.x + dx * 0.12, y1),
-        Pos2::new(start.x + dx * 0.25, y2),
-        Pos2::new(start.x + dx * 0.40, y3),
-        Pos2::new(start.x + dx * 0.55, y4),
-        Pos2::new(start.x + dx * 0.70, y5),
-        Pos2::new(start.x + dx * 0.85, y6),
-        end,
-    ]
+        if task.summary || task.milestone || task.start.is_none() || task.finish.is_none() {
+            continue;
+        }
+
+        let Some(progress_x) = task_progress_x(
+            task,
+            geom,
+            range,
+            chart_left,
+            chart_right,
+            px_per_day,
+            full_complete_date,
+        ) else {
+            continue;
+        };
+        line_points.push(Pos2::new(progress_x, geom.center_y));
+    }
+
+    line_points
 }
 
 fn draw_progress_actual_line(
     painter: &egui::Painter,
-    task: &GanttTask,
-    bar_rect: Rect,
-    baseline_rect: Option<Rect>,
-    selected: bool,
-    show_critical_path: bool,
+    line_points: &[Pos2],
+    status_x: f32,
+    chart_body_rect: Rect,
+    stroke: Stroke,
 ) {
-    if task.start.is_none() || task.finish.is_none() {
+    if line_points.is_empty() {
         return;
     }
 
-    let Some((anchor, progress_point)) = progress_inazuma_endpoints(task, bar_rect, baseline_rect)
-    else {
-        return;
-    };
-    let progress = task.percent_complete.clamp(0.0, 100.0);
-    let is_critical = task.critical && show_critical_path;
-    let stroke_color = if selected {
-        ACCENT
-    } else if is_critical {
-        CRITICAL
-    } else {
-        Color32::from_rgb(160, 94, 26)
-    };
-    let stroke = Stroke::new(if selected { 1.8 } else { 1.2 }, stroke_color);
+    let mut path = Vec::with_capacity(line_points.len() + 2);
+    path.push(Pos2::new(status_x, chart_body_rect.top()));
+    path.extend_from_slice(line_points);
+    path.push(Pos2::new(status_x, chart_body_rect.bottom()));
 
-    if (anchor.x - progress_point.x).abs() > 0.5 || (anchor.y - progress_point.y).abs() > 0.5 {
-        draw_inazuma_polyline(painter, anchor, progress_point, stroke);
+    let clipped_painter = painter.with_clip_rect(chart_body_rect);
+    clipped_painter.add(egui::Shape::line(path, stroke));
+}
+
+fn paint_cell(ui: &mut egui::Ui, fill: Option<Color32>, selected: bool, active: bool) {
+    let rect = ui.max_rect();
+    if let Some(fill) = fill {
+        paint_sheet_cell(ui.painter(), rect, fill, selected, active);
     }
-
-    painter.circle_filled(
-        progress_point,
-        if progress >= 100.0 { 2.8 } else { 2.5 },
-        stroke_color,
-    );
-    painter.circle_stroke(
-        progress_point,
-        if progress >= 100.0 { 2.8 } else { 2.5 },
-        Stroke::new(0.8, Color32::WHITE),
-    );
 }
 
 fn draw_timescale_header(ui: &mut egui::Ui, rect: Rect, range: ChartRange, px_per_day: f32) {
@@ -5750,8 +5981,12 @@ fn draw_dependencies(
         let Some(&succ_index) = task_by_uid.get(&dependency.successor_uid) else {
             continue;
         };
-        let predecessor = &row_geometries[pred_index];
-        let successor = &row_geometries[succ_index];
+        let Some(predecessor) = row_geometries.get(pred_index) else {
+            continue;
+        };
+        let Some(successor) = row_geometries.get(succ_index) else {
+            continue;
+        };
         let highlighted = selected_uid == Some(dependency.predecessor_uid)
             || selected_uid == Some(dependency.successor_uid)
             || active_uid == Some(dependency.predecessor_uid)
@@ -5920,11 +6155,16 @@ mod tests {
         }
     }
 
+    fn sample_status_date_text(date: NaiveDate) -> String {
+        date.format("%Y-%m-%d").to_string()
+    }
+
     fn sample_app(
         document: ProjectDocument,
         selected_task: usize,
         column: SheetColumn,
     ) -> GanttApp {
+        let status_date = NaiveDate::from_ymd_opt(2026, 5, 9).unwrap();
         GanttApp {
             document: Some(document),
             document_path: None,
@@ -5932,6 +6172,10 @@ mod tests {
             status: String::new(),
             error: None,
             zoom_px_per_day: 18.0,
+            status_date,
+            status_date_text: sample_status_date_text(status_date),
+            status_date_picker_open: false,
+            status_date_picker_month: first_day_of_month(status_date),
             filter_text: String::new(),
             show_weekends: true,
             show_critical_path: true,
@@ -6297,60 +6541,200 @@ mod tests {
     }
 
     #[test]
-    fn progress_point_is_interpolated_across_bar_width() {
-        let rect = Rect::from_min_size(Pos2::new(10.0, 20.0), Vec2::new(120.0, 14.0));
+    fn status_date_x_tracks_chart_position() {
+        let range = ChartRange {
+            start: NaiveDate::from_ymd_opt(2026, 5, 1).unwrap(),
+            end: NaiveDate::from_ymd_opt(2026, 5, 11).unwrap(),
+        };
+        let chart_left = 12.0;
+        let px_per_day = 20.0;
 
-        let start = progress_point_on_rect(rect, 0.0);
-        let middle = progress_point_on_rect(rect, 50.0);
-        let end = progress_point_on_rect(rect, 100.0);
-
-        assert_eq!(start, Pos2::new(10.0, 27.0));
-        assert_eq!(middle, Pos2::new(70.0, 27.0));
-        assert_eq!(end, Pos2::new(130.0, 27.0));
+        assert_eq!(
+            status_date_x(range.start, range, chart_left, px_per_day),
+            12.0
+        );
+        assert_eq!(
+            status_date_x(
+                NaiveDate::from_ymd_opt(2026, 5, 6).unwrap(),
+                range,
+                chart_left,
+                px_per_day
+            ),
+            112.0
+        );
+        assert_eq!(
+            status_date_x(range.end, range, chart_left, px_per_day),
+            212.0
+        );
     }
 
     #[test]
-    fn progress_inazuma_endpoints_use_baseline_when_available() {
+    fn parse_app_settings_text_reads_status_date() {
+        let settings = parse_app_settings_text("status_date=2026-05-09\n");
+        assert_eq!(
+            settings.map(|settings| settings.status_date),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 9).unwrap())
+        );
+    }
+
+    #[test]
+    fn task_progress_x_uses_duration_and_falls_back_to_finish_span() {
         let mut task = sample_task(1, 1, "Task A");
         task.start = parse_date_time(Some("2026-05-01T08:00:00"));
-        task.finish = parse_date_time(Some("2026-05-03T17:00:00"));
-        task.baseline_start = parse_date_time(Some("2026-04-30T08:00:00"));
-        task.baseline_finish = parse_date_time(Some("2026-05-02T17:00:00"));
+        task.finish = parse_date_time(Some("2026-05-05T17:00:00"));
+        task.duration_text = "4d".to_string();
         task.percent_complete = 50.0;
+        let range = ChartRange {
+            start: NaiveDate::from_ymd_opt(2026, 5, 1).unwrap(),
+            end: NaiveDate::from_ymd_opt(2026, 5, 11).unwrap(),
+        };
+        let geom = TaskBarGeometry {
+            task_uid: task.uid,
+            start_x: 40.0,
+            end_x: 120.0,
+            center_y: 20.0,
+            bar_rect: Rect::from_min_size(Pos2::new(40.0, 14.0), Vec2::new(80.0, 12.0)),
+            body_rect: Rect::from_min_size(Pos2::new(40.0, 14.0), Vec2::new(80.0, 12.0)),
+            start_handle_rect: None,
+            finish_handle_rect: None,
+            link_handle_rect: Rect::from_min_size(Pos2::new(40.0, 14.0), Vec2::new(80.0, 12.0)),
+        };
 
-        let bar_rect = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(100.0, 12.0));
-        let baseline_rect = Rect::from_min_size(Pos2::new(0.0, -10.0), Vec2::new(80.0, 2.0));
+        assert_eq!(
+            task_progress_x(
+                &task,
+                &geom,
+                range,
+                40.0,
+                140.0,
+                10.0,
+                NaiveDate::from_ymd_opt(2026, 5, 9).unwrap()
+            ),
+            Some(60.0)
+        );
 
-        let (anchor, progress) = progress_inazuma_endpoints(&task, bar_rect, Some(baseline_rect))
-            .expect("endpoints should exist");
-
-        assert_eq!(anchor, Pos2::new(40.0, -9.0));
-        assert_eq!(progress, Pos2::new(50.0, 6.0));
+        task.duration_text.clear();
+        assert_eq!(
+            task_progress_x(
+                &task,
+                &geom,
+                range,
+                40.0,
+                140.0,
+                10.0,
+                NaiveDate::from_ymd_opt(2026, 5, 9).unwrap()
+            ),
+            Some(60.0)
+        );
     }
 
     #[test]
-    fn progress_inazuma_endpoints_skip_unscheduled_tasks() {
-        let task = sample_task(1, 1, "Task A");
-        let bar_rect = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(100.0, 12.0));
+    fn task_progress_x_uses_status_date_for_full_complete_tasks_and_clamps_right_edge() {
+        let mut task = sample_task(1, 1, "Task A");
+        task.start = parse_date_time(Some("2026-05-01T08:00:00"));
+        task.finish = parse_date_time(Some("2026-05-12T17:00:00"));
+        task.duration_text = "12d".to_string();
+        task.percent_complete = 100.0;
+        let range = ChartRange {
+            start: NaiveDate::from_ymd_opt(2026, 5, 1).unwrap(),
+            end: NaiveDate::from_ymd_opt(2026, 5, 11).unwrap(),
+        };
+        let geom = TaskBarGeometry {
+            task_uid: task.uid,
+            start_x: 40.0,
+            end_x: 160.0,
+            center_y: 20.0,
+            bar_rect: Rect::from_min_size(Pos2::new(40.0, 14.0), Vec2::new(120.0, 12.0)),
+            body_rect: Rect::from_min_size(Pos2::new(40.0, 14.0), Vec2::new(120.0, 12.0)),
+            start_handle_rect: None,
+            finish_handle_rect: None,
+            link_handle_rect: Rect::from_min_size(Pos2::new(40.0, 14.0), Vec2::new(120.0, 12.0)),
+        };
 
-        assert!(progress_inazuma_endpoints(&task, bar_rect, None).is_none());
+        assert_eq!(
+            task_progress_x(
+                &task,
+                &geom,
+                range,
+                40.0,
+                95.0,
+                10.0,
+                NaiveDate::from_ymd_opt(2026, 5, 9).unwrap()
+            ),
+            Some(95.0)
+        );
     }
 
     #[test]
-    fn inazuma_polyline_points_keep_endpoints_and_progress_monotonic() {
-        let points = inazuma_polyline_points(Pos2::new(10.0, 20.0), Pos2::new(110.0, 70.0));
+    fn collect_inazuma_progress_points_keeps_visible_row_order_and_skips_unscheduled_tasks() {
+        let mut first = sample_task(1, 1, "Task A");
+        first.start = parse_date_time(Some("2026-05-01T08:00:00"));
+        first.finish = parse_date_time(Some("2026-05-03T17:00:00"));
+        first.duration_text = "4d".to_string();
+        first.percent_complete = 25.0;
 
-        assert_eq!(points.first().copied(), Some(Pos2::new(10.0, 20.0)));
-        assert_eq!(points.last().copied(), Some(Pos2::new(110.0, 70.0)));
-        assert!(points.windows(2).all(|pair| pair[0].x <= pair[1].x));
-    }
+        let mut second = sample_task(2, 2, "Task B");
+        second.start = parse_date_time(Some("2026-05-04T08:00:00"));
+        second.finish = parse_date_time(Some("2026-05-06T17:00:00"));
+        second.duration_text = "8d".to_string();
+        second.percent_complete = 75.0;
 
-    #[test]
-    fn inazuma_polyline_points_handle_reverse_direction() {
-        let points = inazuma_polyline_points(Pos2::new(110.0, 70.0), Pos2::new(10.0, 20.0));
+        let third = sample_task(3, 3, "Task C");
 
-        assert_eq!(points.first().copied(), Some(Pos2::new(110.0, 70.0)));
-        assert_eq!(points.last().copied(), Some(Pos2::new(10.0, 20.0)));
-        assert!(points.windows(2).all(|pair| pair[0].x >= pair[1].x));
+        let geometries = vec![
+            TaskBarGeometry {
+                task_uid: first.uid,
+                start_x: 10.0,
+                end_x: 110.0,
+                center_y: 20.0,
+                bar_rect: Rect::from_min_size(Pos2::new(10.0, 14.0), Vec2::new(100.0, 12.0)),
+                body_rect: Rect::from_min_size(Pos2::new(10.0, 14.0), Vec2::new(100.0, 12.0)),
+                start_handle_rect: None,
+                finish_handle_rect: None,
+                link_handle_rect: Rect::from_min_size(Pos2::new(10.0, 14.0), Vec2::new(100.0, 12.0)),
+            },
+            TaskBarGeometry {
+                task_uid: second.uid,
+                start_x: 10.0,
+                end_x: 110.0,
+                center_y: 36.0,
+                bar_rect: Rect::from_min_size(Pos2::new(10.0, 30.0), Vec2::new(100.0, 12.0)),
+                body_rect: Rect::from_min_size(Pos2::new(10.0, 30.0), Vec2::new(100.0, 12.0)),
+                start_handle_rect: None,
+                finish_handle_rect: None,
+                link_handle_rect: Rect::from_min_size(Pos2::new(10.0, 30.0), Vec2::new(100.0, 12.0)),
+            },
+            TaskBarGeometry {
+                task_uid: third.uid,
+                start_x: 10.0,
+                end_x: 110.0,
+                center_y: 52.0,
+                bar_rect: Rect::from_min_size(Pos2::new(10.0, 46.0), Vec2::new(100.0, 12.0)),
+                body_rect: Rect::from_min_size(Pos2::new(10.0, 46.0), Vec2::new(100.0, 12.0)),
+                start_handle_rect: None,
+                finish_handle_rect: None,
+                link_handle_rect: Rect::from_min_size(Pos2::new(10.0, 46.0), Vec2::new(100.0, 12.0)),
+            },
+        ];
+        let tasks = vec![first, second, third];
+        let visible_indices = vec![0, 1, 2];
+
+        let line_points = collect_inazuma_progress_points(
+            &geometries,
+            &visible_indices,
+            &tasks,
+            ChartRange {
+                start: NaiveDate::from_ymd_opt(2026, 5, 1).unwrap(),
+                end: NaiveDate::from_ymd_opt(2026, 5, 11).unwrap(),
+            },
+            10.0,
+            110.0,
+            10.0,
+            NaiveDate::from_ymd_opt(2026, 5, 9).unwrap(),
+        );
+
+        assert_eq!(line_points.len(), 2);
+        assert_eq!(line_points[0], Pos2::new(20.0, 20.0));
+        assert_eq!(line_points[1], Pos2::new(70.0, 36.0));
     }
 }
